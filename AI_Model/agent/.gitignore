@@ -1,0 +1,30 @@
+# Python runtime and generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv*/
+build/
+dist/
+
+# Local data, conversations, indexes, browser profile, and secrets
+data/
+config.json
+mcp_servers.json
+.env
+.env.*
+!.env.example
+
+# Downloaded tools and model assets
+tools/*/node_modules/
+tools/*/.cache/
+*.gguf
+*.safetensors
+*.onnx
+*.pt
+*.pth
+
+# Logs and generated output
+*.log
+logs/
+output/

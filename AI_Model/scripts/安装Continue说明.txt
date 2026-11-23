@@ -1,0 +1,29 @@
+Continue 扩展手动安装说明  【状态：已完成，2026-11-23 19:26:45 核对】
+============================================================
+
+*** 扩展已由用户手工装好，本文件仅作历史记录与重装参考 ***
+配置文件：C:/Users/jayyh/.continue/config.yaml（4个本地模型，连 127.0.0.1:11434）
+当前主推入口是桌面「本地AI Agent」GUI，Continue 作为 VS Code 内备选。
+
+以下为当时的安装方法（命令行下载太慢，改用 VS Code 内置市场）：
+
+方法A：VS Code 内置市场（最简单）
+  1. 打开 VS Code
+  2. 按 Ctrl+Shift+X 打开扩展面板
+  3. 搜索 "Continue"
+  4. 点 Install（作者 Continue.dev，图标是蓝色C）
+  5. 装完按 Ctrl+Shift+P → 输入 "Reload Window" 回车
+
+方法B：浏览器直接下载 VSIX
+  1. 浏览器打开这个地址（会自动下载）：
+  https://marketplace.visualstudio.com/_apis/public/gallery/publishers/Continue/vsextensions/continue/latest/vspackage
+  2. 下载完把文件名改成 continue.vsix
+  3. VS Code 里按 Ctrl+Shift+P → 输入 "Extensions: Install from VSIX" → 选这个文件
+
+装完后怎么用：
+  - 左侧活动栏出现 Continue 图标（蓝色C），点开
+  - 顶部下拉框选 "本地代码模型 qwen2.5-coder:7b"
+  - 直接问它写代码问题，或在代码里选中一段让它改
+  - 自动补全：写代码时它会实时提示（用的 qwen2.5-coder:7b）
+
+注意：用之前确保 Ollama 在跑（双击 scripts\1-启动Ollama.bat）

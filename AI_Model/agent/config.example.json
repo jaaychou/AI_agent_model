@@ -1,0 +1,12 @@
+{
+  "base_url": "http://127.0.0.1:11434",
+  "model": "qwen3.5:4b",
+  "workspace": "D:/Program/AI_Model_agent",
+  "max_steps": 30,
+  "max_context_messages": 16,
+  "system_prompt": "",
+  "command_shell": "PowerShell",
+  "full_local_access": true,
+  "auto_run_commands": true,
+  "progress_samples": {}
+}

@@ -1,0 +1,22 @@
+{
+  "check_interval_seconds": 2,
+  "hits_before_soft": 3,
+  "hits_before_hard": 2,
+  "cooldown_seconds": 45,
+  "min_free_ram_mb_soft": 2200,
+  "min_free_ram_mb_hard": 1400,
+  "min_free_ram_mb_critical": 900,
+  "gpu_mem_percent_soft": 80,
+  "gpu_mem_percent_hard": 90,
+  "gpu_mem_percent_critical": 96,
+  "gpu_temp_soft_c": 82,
+  "gpu_temp_hard_c": 88,
+  "gpu_temp_critical_c": 92,
+  "cpu_percent_soft": 92,
+  "cpu_hits_before_soft": 15,
+  "cpu_core_limit_ratio": 0.5,
+  "beep_on_action": true,
+  "watch_comfy": true,
+  "watch_ollama": true,
+  "watch_webui": true
+}

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "D:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "D:\\Program\\AI_Model_agent\\AI_Model\\agent\\tools\\playwright-mcp\\node_modules\\@playwright\\mcp\\cli.js",
+        "--browser",
+        "msedge",
+        "--user-data-dir",
+        "D:\\Program\\AI_Model_agent\\AI_Model\\agent\\data\\playwright-profile"
+      ]
+    }
+  }
+}

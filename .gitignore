@@ -1,0 +1,75 @@
+# Environment and editor state
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv/
+**/venv*/
+**/node_modules/
+**/build/
+**/dist/
+.playwright-mcp/
+.workbuddy/
+.git.codex-undo/
+
+# Private runtime configuration and local databases
+AI_Model/agent/config.json
+AI_Model/agent/mcp_servers.json
+AI_Model/agent/data/
+**/.webui_secret_key
+AI_Model/.webui_secret_key
+AI_Model/webui_data/
+**/.env
+**/.env.*
+!**/.env.example
+**/config.local.json
+**/mcp_servers.local.json
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.jsonl
+
+# Installed software, models, downloaded packages, and generated images
+AI_Model/ComfyUI/
+AI_Model/ComfyUI.zip
+AI_Model/Ollama/
+AI_Model/models/
+AI_Model/downloads/
+AI_Model/venv-comfy/
+AI_Model/venv-webui/
+**/checkpoints/
+**/datasets/
+**/models/
+**/output/
+**/cache/
+**/node_modules/
+*.gguf
+*.safetensors
+*.ckpt
+*.onnx
+*.pt
+*.pth
+*.whl
+*.zip
+*.exe
+*.dll
+*.pyd
+
+# Local logs and private user documents
+AI_Model/logs*.txt
+AI_Model/logs*.err
+AI_Model/logs*.log
+AI_Model/guard/*.log
+logs*.txt
+*.log
+*.err
+*.pdf
+*.tmp
+Thumbs.db
+Desktop.ini
+
+# One-off debug dumps captured during setup (environment-specific, not handover material)
+AI_Model/comfy_object_info.json
+
+# Scratch / throwaway test files (not part of the handover)
+hello_world.txt
