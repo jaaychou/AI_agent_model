@@ -2,7 +2,7 @@
 
 本地 AI Agent 与本地模型部署工程（离线优先，不依赖云端积分）。
 
-> 最近复核：2026-11-24 13:10（GMT+8）
+> 最近复核：2026-11-24 14:05（GMT+8）
 
 ## 快速开始
 
@@ -35,6 +35,7 @@
 - **多模型协同**：A 模型可委托子任务给更擅长的 B 模型（实测成功）；**Mermaid 流程图**实时渲染
 - **运行模式切换**：普通 / L3 计划 / L4 回环；联网搜索 On/Off 开关
 - **编译运行环境**：Python/C/C++/Node/Shell/PowerShell 编译运行（`compile_run`），失败读 stderr 自主重试；MATLAB 探测到才用（当前未完整安装）
+- **系统完全体诊断**：关机/蓝屏原因证据链、事件日志、GPU/显存/CPU/内存/磁盘/电池、唤醒源、磁盘 SMART、更新历史、应用崩溃；受控增删改电源计划/计划任务/环境变量/白名单注册表项（GUI 开关 + 逐次确认）
 
 ## 运行环境（不进仓库，需另备）
 
@@ -45,5 +46,5 @@
 
 - 远端：`https://github.com/jaaychou/AI_agent_model.git`（注意是 `jaaychou`）
 - 分支：`main`
-- Agent 内 Git 新手操作：打开 `☰` → `Git`，按 `AI_Model/agent/使用说明.md` 的“Git 是什么，第一次怎么连接”逐步操作。当前已配置 `origin`，本地与远端 `main` 已同步（最新提交 `c11dda8`，本轮改动提交后会更新）。
+- Agent 内 Git 新手操作：打开 `☰` → `Git`，按 `AI_Model/agent/使用说明.md` 的“Git 是什么，第一次怎么连接”逐步操作。当前已配置 `origin`，本地与远端 `main` 已同步（最新提交以 `git log -1 --oneline` 为准）。
 - `src refspec HEAD does not match any` 表示本机没有提交；先用 Git 页的“暂存并提交”，再推送。

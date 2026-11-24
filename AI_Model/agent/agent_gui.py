@@ -416,6 +416,7 @@ class AgentApp:
         self.allow_firmware = tk.BooleanVar(value=bool(self.cfg.get("allow_firmware", False)))
         self.allow_startup = tk.BooleanVar(value=bool(self.cfg.get("allow_startup", False)))
         self.allow_capture = tk.BooleanVar(value=bool(self.cfg.get("allow_capture", False)))
+        self.allow_system_admin = tk.BooleanVar(value=bool(self.cfg.get("allow_system_admin", False)))
         self.is_admin = self._is_admin_process()
         self.running = False
         self.msg_queue: queue.Queue = queue.Queue()
@@ -907,6 +908,15 @@ class AgentApp:
                        bg=C_BG, activebackground=C_BG,
                        font=(FONT_UI, 8), anchor="w").pack(fill=tk.X, padx=8, pady=(2, 0))
         tk.Label(settings, text="需 Npcap + 管理员。WiFi monitor/蓝牙空口嗅探受硬件限制，工具会如实报告。",
+                 bg=C_BG, fg="#9a5b19", font=(FONT_UI, 7), wraplength=290,
+                 justify="left", anchor="w").pack(fill=tk.X, padx=10, pady=(0, 5))
+        tk.Checkbutton(settings, text="允许系统配置管理（电源计划/计划任务/环境变量/注册表）",
+                       variable=self.allow_system_admin,
+                       command=self._toggle_system_admin,
+                       bg=C_BG, activebackground=C_BG,
+                       font=(FONT_UI, 8), anchor="w").pack(fill=tk.X, padx=8, pady=(2, 0))
+        tk.Label(settings, text="开启后 Agent 可增删改电源计划、计划任务、环境变量和受限注册表项；"
+                                "每次写入仍需单独确认，注册表仅开放白名单路径。",
                  bg=C_BG, fg="#9a5b19", font=(FONT_UI, 7), wraplength=290,
                  justify="left", anchor="w").pack(fill=tk.X, padx=10, pady=(0, 5))
 
@@ -1515,6 +1525,8 @@ class AgentApp:
         from core.mermaid_tools import register_mermaid_tools
         from core.model_router import register_model_router
         from core.build_tools import register_build_tools
+        from core.system_diagnostics import register_system_diagnostics
+        from core.system_admin_tools import register_system_admin_tools
         register_meta_tools(registry, confirm=confirm)
         register_system_control_tools(registry, confirm=confirm)
         register_web_tools(registry, confirm=confirm)
@@ -1532,6 +1544,9 @@ class AgentApp:
         register_mermaid_tools(registry)
         register_model_router(registry)
         register_build_tools(registry)
+        register_system_diagnostics(registry)
+        register_system_admin_tools(registry, confirm=confirm,
+                                    enabled=self.allow_system_admin.get())
         # 高危权限工具：严格按 GUI 开关门控，默认关闭
         # Win+R 命令归入“自主运行命令”授权（auto_run_commands），固件/自启动各自独立授权
         priv_groups = set()
@@ -1599,7 +1614,23 @@ class AgentApp:
              "(3) 用户问天气/最新信息 → 立刻自己调 weather/web_search，换个说法(如『今天冷不冷』『穿啥』『热成这样』)也要识别为天气意图；"
              "(4) 用户隐含需求(如『把这个数据直观展示』『给我看看趋势』) → 主动想到 plot_chart/data_analyze，别等用户点名工具；"
              "(5) 工具报错或结果为空 → 换一个工具/参数/方法重试，读真实输出再决定下一步，不要停下来问用户，更不要编造结果。\n"
-             "【命令行自主闭环——极重要】你能在后台 bash/CMD/PowerShell 里自己输命令、读输出、判断成功与否，全程不需要用户操作：\n"
+             "【信息不足就自己深挖——极重要】查到部分信息时绝不能说『无法核实，请提供更多信息』就停下。"
+             "你必须自己换工具/换关键词继续查，直到找到答案或穷尽手段：\n"
+             "- 问『上次为什么关机/电脑为什么重启』→ 调 system_shutdown_reason，它会自动查 1074(谁发起)、"
+             "6008(意外关机)、41(Kernel-Power)、BugCheck(蓝屏)、WHEA(硬件错误)并综合判断；"
+             "若返回含蓝屏/错误码，就继续用 event_log_search 按时间点深挖具体事件，不要只报『无法核实原因』。\n"
+             "- 问日志/事件/硬件状态 → 用 event_log_search/hardware_monitor/installed_software/scheduled_tasks 等查真实数据，"
+             "一个工具结果不完整就再查另一个，别让用户自己开事件查看器。\n"
+             "- 只有把所有相关工具都查过、确实没有记录时，才如实说『已查过X/Y/Z日志，未发现记录』，并说明查了什么。\n"
+             + ("" if self.allow_system_admin.get() else
+                "系统配置写操作当前未授权：电源计划/计划任务/环境变量/注册表的增删改工具不可用。"
+                "用户问这些写操作时如实说明需要在设置里打开『系统配置管理』开关，不要声称已修改。\n")
+             + ("【系统配置管理已授权】用户要求改电源计划/计划任务/环境变量/受限注册表项时，"
+                "用 power_plan_manager/scheduled_task_manager/env_var_manager/registry_manager 真实执行。"
+                "每次写操作会弹确认；确认被拒绝就停止，不要绕过。"
+                "注册表只允许白名单路径，超出范围如实告知，不要尝试用 run_command 绕过限制。\n"
+                if self.allow_system_admin.get() else "")
+             + "【命令行自主闭环——极重要】你能在后台 bash/CMD/PowerShell 里自己输命令、读输出、判断成功与否，全程不需要用户操作：\n"
              "- 用 run_command 执行命令后，必须读真实的『退出码 + stdout/stderr』。退出码 0 才算成功；非 0 就是失败。\n"
              "- 失败时不要停下问用户，也不要只报告失败：先读 stderr 的错误信息，自己诊断原因(路径错/缺依赖/语法错/权限不足)，"
              "改成正确的命令或代码再试，直到成功或确认确实做不到。\n"
@@ -1884,6 +1915,7 @@ class AgentApp:
         self.cfg["allow_firmware"] = self.allow_firmware.get()
         self.cfg["allow_startup"] = self.allow_startup.get()
         self.cfg["allow_capture"] = self.allow_capture.get()
+        self.cfg["allow_system_admin"] = self.allow_system_admin.get()
         if hasattr(self, "mode_var"):
             self.cfg["run_mode"] = self.mode_var.get()
         try:
@@ -2668,6 +2700,15 @@ class AgentApp:
                 "仅在你自己的设备上使用，勿用于未授权网络。是否启用？"):
             self.allow_capture.set(False)
         self._rebuild_after_toggle(self.allow_capture, "抓包嗅探")
+
+    def _toggle_system_admin(self):
+        if self.allow_system_admin.get() and not messagebox.askyesno(
+                "启用系统配置管理能力？",
+                "将允许 Agent 增删改电源计划、计划任务、环境变量和受限注册表项。\n"
+                "每次写入仍需逐次确认；注册表仅开放 LocalAgent 白名单和少量安全路径。\n"
+                "Machine 范围修改需以管理员身份运行 GUI。是否启用？"):
+            self.allow_system_admin.set(False)
+        self._rebuild_after_toggle(self.allow_system_admin, "系统配置管理")
 
     @staticmethod
     def _is_admin_process():

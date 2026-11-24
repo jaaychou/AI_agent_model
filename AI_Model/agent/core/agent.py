@@ -191,6 +191,15 @@ class Agent:
         code_intent = bool(re.search(
             r"编译|运行.*(?:代码|程序|脚本)|c\+\+|cpp|\bc\b语言|matlab|"
             r"makefile|cmake|\.cpp|\.c\b|build |跑.*代码|执行.*代码", text, re.I))
+        diag_intent = bool(re.search(
+            r"日志|事件日志|event.?log|关机|开机|重启|崩溃|蓝屏|bugcheck|"
+            r"显存|显卡|gpu|温度|风扇|电池|电源|睡眠|唤醒|磁盘健康|smart|"
+            r"已装软件|装了.*程序|驱动|计划任务|定时任务|系统配置|防火墙|网络配置|"
+            r"时间同步|登录记录|上次.*(?:关机|开机|启动)", text, re.I))
+        sysadmin_intent = bool(re.search(
+            r"电源计划|功耗模式|节能模式|高性能模式|唤醒源|上次唤醒|更新历史|补丁|"
+            r"蓝屏历史|软件崩溃|磁盘健康|smart|显存占用进程|计划任务|定时任务|"
+            r"环境变量|注册表|系统配置.*(?:改|设置|添加|删除)|增删改查", text, re.I))
         sandbox_intent = bool(re.search(
             r"沙盒|隔离.*(?:运行|执行|测试|编译)|安全.*(?:运行|测试|编译)|"
             r"编译.*测试|跑.*(?:代码|脚本|实验)|测试.*代码|try.*code", text))
@@ -350,6 +359,14 @@ class Agent:
                     selected.append(schema)
                 elif name in {"build_environment", "compile_run"} and code_intent:
                     selected.append(schema)
+                elif name in {"system_shutdown_reason", "event_log_search", "hardware_monitor",
+                              "installed_software", "scheduled_tasks", "driver_list",
+                              "network_config", "login_history", "system_config_overview",
+                              "windows_forensics"} and (diag_intent or sysadmin_intent):
+                    selected.append(schema)
+                elif name in {"power_plan_manager", "scheduled_task_manager",
+                              "env_var_manager", "registry_manager"} and sysadmin_intent:
+                    selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
                     "list_dir", "search_files", "grep", "document_to_markdown", "inspect_file", "verify_file", "edit_file",
@@ -375,6 +392,11 @@ class Agent:
                     "data_analyze", "manim_status", "manim_examples", "manim_render",
                     "list_models_capability", "delegate_to_model", "render_mermaid",
                     "build_environment", "compile_run",
+                    "system_shutdown_reason", "event_log_search", "hardware_monitor",
+                    "installed_software", "scheduled_tasks", "driver_list",
+                    "network_config", "login_history", "system_config_overview",
+                    "windows_forensics", "power_plan_manager", "scheduled_task_manager",
+                    "env_var_manager", "registry_manager",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)
@@ -427,6 +449,8 @@ class Agent:
             "workspace_info", "discover_tools", "inspect_environment", "sandbox_run",
             "system_status", "install_package", "search_tools",
             "build_environment", "compile_run",
+            "system_shutdown_reason", "hardware_monitor", "event_log_search",
+            "windows_forensics",
         }
         selected_names = {
             s.get("function", {}).get("name", "") for s in selected if isinstance(s, dict)

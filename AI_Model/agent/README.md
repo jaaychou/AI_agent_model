@@ -19,7 +19,7 @@ agent/
 ├─ core/   所有能力模块（见下）
 ├─ skills/  技能（SKILL.md + frontmatter）
 ├─ tools/   本地 MCP 服务脚本（email_mcp_server.py 等）
-├─ tests/   unittest（全套 182+ 项）
+├─ tests/   unittest（全套 226 项）
 └─ data/    会话库、RAG 索引、图表/动画/抓包输出（被忽略）
 ```
 
@@ -31,6 +31,7 @@ agent/
 | 记忆/知识 | `sessions.py` / `rag.py` | SQLite 会话、FTS5 知识库 |
 | 扩展 | `skills.py` / `mcp.py` / `meta_tools.py` | 技能、MCP、工具自发现/安装/自造 |
 | 系统 | `system_control.py` / `privileged_tools.py` | 进程服务窗口串口、固件/启动项/Win+R（授权门控） |
+| 系统诊断 | `system_diagnostics.py` / `system_admin_tools.py` | 关机原因深挖、事件日志、硬件/电源；受控电源计划/计划任务/环境变量/注册表增删改 |
 | 网络 | `web_search.py` / `web_tools.py` / `weather_tools.py` / `capture_tools.py` / `network_observe.py` | 搜索/抓取/天气/抓包/只读观测 |
 | 数据 | `data_tools.py` / `dsp_tools.py` / `mermaid_tools.py` | 图表分析、信号处理、流程图渲染 |
 | 自治 | `autonomy.py` / `autopilot.py` | L4 规划验收、L5 围栏自治 |
@@ -41,7 +42,7 @@ agent/
 ## 设计铁律（维护时勿破坏）
 
 1. **自主执行**：模型必须自己调用工具干活，禁止只给建议；通用兜底工具常驻可见（见 `agent.py` 的 `ALWAYS_AVAILABLE`）。
-2. **授权门控**：高危能力（固件/启动项/抓包）默认关闭，GUI 开关开启才注册，写操作逐次 confirm。
+2. **授权门控**：高危能力（固件/启动项/抓包/系统配置管理）默认关闭，GUI 开关开启才注册，写操作逐次 confirm。
 3. **诚实降级**：缺 key/凭据、硬件不支持、能力不足时如实说明，绝不编造结果或伪造抓包/渲染。
 4. **工具筛选省 token**：按意图给 schema + 兜底集；不要一次塞全部工具给小模型。
 
@@ -52,4 +53,4 @@ cd D:/Program/AI_Model_agent
 AI_Model/venv-comfy/Scripts/python.exe -m unittest discover -s AI_Model/agent/tests
 ```
 
-当前全套 182+ 项通过。改代码后需完全退出并重启 Agent 才生效。
+当前全套 226 项通过。改代码后需完全退出并重启 Agent 才生效。
