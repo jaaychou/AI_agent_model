@@ -1368,9 +1368,11 @@ class AgentApp:
             "3. 装好的库没有现成工具时，用 create_tool 自己写一个工具脚本（定义 run(args) 函数，可选 TOOL_META），"
             "注册后本次和以后都能调用。写之前想清输入输出，写完先用一个小例子验证结果，再交给用户。\n"
             "4. 要观察或控制底层系统：system_status 看硬件、list_processes/terminate_process 管理进程、"
-            "list_windows 确认窗口、list_services/service_control 管服务、serial_ports 查串口、"
+            "list_windows 确认窗口、list_services/service_control 管服务、serial_ports/serial_comm 查串口并读写、"
             "env_vars 查环境变量、registry_read 读注册表；更底层的操作用 run_command 调用 PowerShell/CMD。"
             "所有写操作都要说明真实结果，失败要报告，绝不编造成功。\n"
+            "4b. 要读某个网页/文档正文或做爬虫研究，用 web_fetch 抓取真实页面（遵守 robots.txt，拒内网地址）；"
+            "需要 JS 动态渲染或登录交互时用浏览器工具（Playwright MCP）。\n"
             "5. 安装、造工具、结束进程、改服务都会请求用户确认；被拒绝就换方案或如实说明。"
             "不要索要密码/令牌，不绕过 UAC，不窃取凭据，也不监听底层硬件信号。\n"
         )
@@ -1406,8 +1408,10 @@ class AgentApp:
         # 元工具：自我发现 / 联网搜工具 / 隔离安装 / 自造工具 / 底层系统控制
         from core.meta_tools import register_meta_tools, register_dynamic_tools
         from core.system_control import register_system_control_tools
+        from core.web_tools import register_web_tools
         register_meta_tools(registry, confirm=confirm)
         register_system_control_tools(registry, confirm=confirm)
+        register_web_tools(registry, confirm=confirm)
         register_dynamic_tools(registry, confirm=confirm)
 
         skills = load_skills(SKILLS_DIR)

@@ -134,6 +134,9 @@ class Agent:
         """Send only tool schemas related to this task to save local context tokens."""
         text = user_input.casefold()
         browser_intent = bool(re.search(r"浏览器|网页|网站|页面|browser|webpage|website|playwright|登录网页|打开链接", text))
+        fetch_intent = bool(re.search(
+            r"抓取|爬取|爬虫|打开这个(?:网址|链接|url)|读取网页|网页正文|页面内容|"
+            r"这个网址|这个链接|打开url|fetch|抓取页面|采集|研究.*网页|读.*url", text))
         integration_intent = bool(re.search(r"github|git 仓库|git仓库|邮箱|邮件|mcp", text))
         file_intent = bool(re.search(
             r"文件|目录|文件夹|工作空间|工作区|路径|读取|读一下|创建|新建|写入|保存|修改|编辑|删除|移动|复制|重命名|搜索文件|查找文件|压缩包|解压|校验文件|检查文件|下载|\.(?:txt|md|py|bat|cmd|ps1|js|ts|c|cpp|h|hpp|json|html|css|pdf|docx?|xlsx?|xlsm|pptx?|pptm|zip|7z|rar|exe)\b",
@@ -245,8 +248,10 @@ class Agent:
                 elif name in {"search_tools", "install_package", "create_tool", "write_tool_script"} and meta_intent:
                     selected.append(schema)
                 elif name in {"system_status", "list_processes", "terminate_process", "list_windows",
-                              "list_services", "service_control", "serial_ports", "env_vars",
+                              "list_services", "service_control", "serial_ports", "serial_comm", "env_vars",
                               "registry_read"} and (system_control_intent or device_intent):
+                    selected.append(schema)
+                elif name == "web_fetch" and (fetch_intent or search_intent or browser_intent):
                     selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
@@ -258,7 +263,8 @@ class Agent:
                     "discover_tools", "inspect_environment", "search_tools", "install_package",
                     "create_tool", "write_tool_script",
                     "system_status", "list_processes", "terminate_process", "list_windows",
-                    "list_services", "service_control", "serial_ports", "env_vars", "registry_read",
+                    "list_services", "service_control", "serial_ports", "serial_comm", "env_vars",
+                    "registry_read", "web_fetch",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)

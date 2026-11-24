@@ -84,8 +84,10 @@ def make_agent(args, cfg: dict) -> Agent:
     # Meta tools (self-discovery / tool search / install / self-authoring)
     from core.meta_tools import register_meta_tools, register_dynamic_tools
     from core.system_control import register_system_control_tools
+    from core.web_tools import register_web_tools
     register_meta_tools(registry, confirm=confirm)
     register_system_control_tools(registry, confirm=confirm)
+    register_web_tools(registry, confirm=confirm)
     register_dynamic_tools(registry, confirm=confirm)
 
     # Skills

@@ -196,6 +196,55 @@ def register_system_control_tools(registry, confirm=None):
         except Exception as exc:
             return ToolResult(False, f"串口枚举失败：{exc}")
 
+    def serial_comm(args):
+        """串口读写：需要 pySerial（未装时提示用 install_package 装）。写操作走 confirm。"""
+        port = str(args.get("port", "")).strip()
+        action = str(args.get("action", "list")).casefold()
+        if action == "list":
+            return serial_ports({})
+        if not port:
+            return ToolResult(False, "请提供串口名，如 COM3。action=list 可查看可用串口。")
+        try:
+            import serial  # pySerial
+        except ImportError:
+            return ToolResult(False, "串口读写需要 pySerial。请让 Agent 用 install_package(package=\"pyserial\") 安装到隔离目录后重试。")
+        baudrate = int(args.get("baudrate", 9600) or 9600)
+        timeout = float(args.get("timeout", 2) or 2)
+        try:
+            if action == "write":
+                data = args.get("data")
+                payload = str(data).encode("utf-8") if data is not None else b""
+                if confirm and not confirm(f"Agent 请求向串口 {port}（{baudrate} 波特）写入 {len(payload)} 字节。是否允许？"):
+                    return ToolResult(False, "用户拒绝串口写入。")
+                with serial.Serial(port, baudrate=baudrate, timeout=timeout) as ser:
+                    written = ser.write(payload)
+                return ToolResult(True, f"已向 {port} 写入 {written} 字节。")
+            if action == "read":
+                size = max(1, min(int(args.get("size", 256) or 256), 8192))
+                with serial.Serial(port, baudrate=baudrate, timeout=timeout) as ser:
+                    chunk = ser.read(size)
+                try:
+                    text = chunk.decode("utf-8")
+                except UnicodeDecodeError:
+                    text = chunk.hex(" ")
+                return ToolResult(True, f"从 {port} 读取 {len(chunk)} 字节：\n{text}")
+            if action == "write_read":
+                data = args.get("data")
+                payload = str(data).encode("utf-8") if data is not None else b""
+                if confirm and not confirm(f"Agent 请求向串口 {port} 写入并读取（{baudrate} 波特）。是否允许？"):
+                    return ToolResult(False, "用户拒绝串口操作。")
+                with serial.Serial(port, baudrate=baudrate, timeout=timeout) as ser:
+                    ser.write(payload)
+                    chunk = ser.read(max(1, min(int(args.get("size", 256) or 256), 8192)))
+                try:
+                    text = chunk.decode("utf-8")
+                except UnicodeDecodeError:
+                    text = chunk.hex(" ")
+                return ToolResult(True, f"串口 {port} 往返读取 {len(chunk)} 字节：\n{text}")
+            return ToolResult(False, f"未知的串口 action：{action}。可用：list/write/read/write_read。")
+        except Exception as exc:
+            return ToolResult(False, f"串口操作失败：{type(exc).__name__}: {exc}")
+
     def env_vars(args):
         keyword = str(args.get("keyword", "")).strip().casefold()
         items = []
@@ -250,8 +299,18 @@ def register_system_control_tools(registry, confirm=None):
             "action": {"type": "string", "description": "query/start/stop/restart，默认 query"},
         }, "required": ["name"]}, service_control, source="system")
     registry.register(
-        "serial_ports", "枚举本机串口（COM 口）设备。需要读写串口数据时，用 create_tool 生成一个 import serial 的工具",
+        "serial_ports", "枚举本机串口（COM 口）设备，只读",
         {"type": "object", "properties": {}, "required": []}, serial_ports, source="system")
+    registry.register(
+        "serial_comm", "串口读写：action=list 查看串口；read/write/write_read 读写指定 COM 口。需要 pySerial（未装时用 install_package 装）。写入类操作会请求用户确认",
+        {"type": "object", "properties": {
+            "action": {"type": "string", "description": "list/read/write/write_read，默认 list"},
+            "port": {"type": "string", "description": "串口名，如 COM3"},
+            "baudrate": {"type": "integer", "description": "波特率，默认 9600"},
+            "data": {"type": "string", "description": "write/write_read 要写入的数据"},
+            "size": {"type": "integer", "description": "读取字节数，默认 256"},
+            "timeout": {"type": "number", "description": "超时秒数，默认 2"},
+        }, "required": ["action"]}, serial_comm, source="system")
     registry.register(
         "env_vars", "查看环境变量（可按关键词筛选）。所有疑似凭据的变量值会被隐藏，绝不泄露密码/令牌",
         {"type": "object", "properties": {
