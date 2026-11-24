@@ -2,7 +2,7 @@
 
 本地 AI Agent 与本地模型部署工程（离线优先，不依赖云端积分）。
 
-> 最近整理：2026-11-23 19:26:45（GMT+8）
+> 最近复核：2026-11-23 20:40:23（GMT+8）
 
 ## 快速开始
 
@@ -19,6 +19,10 @@
 
 - 4 个本地 Ollama 模型（qwen3.5:4b / deepseek-r1:8b / qwen2.5-coder:7b / qwen2.5vl:7b）
 - 自研桌面 Agent：ReAct 循环、7+ 内置工具、Skill、MCP、会话记忆、本地 RAG、Git 面板、进度 ETA、Playwright 浏览器自动化、文生图集成
+- 内置 Bing RSS 实时搜索、本机日期时间查询，以及 PDF/DOCX 提取为 Markdown
+- Ollama 流式工具参数校验；参数 JSON 格式错误时停止执行并要求模型重试
+- 本地 IMAP/SMTP 邮箱 MCP 起步实现（Gmail/QQ；需用户配置应用密码和邮箱服务器，发送逐次确认）
+- GUI 支持对话复制、模型相关的文件类型提示、资源管理器文件复制粘贴/拖放，以及生成图片放大和复制
 - ComfyUI + Z-Image-Turbo 本地文生图
 - 资源守护程序（防显存/内存爆满导致蓝屏）
 - Open WebUI + 联网搜索/代码执行工具
@@ -32,4 +36,5 @@
 
 - 远端：`https://github.com/jaaychou/AI_agent_model.git`（注意是 `jaaychou`）
 - 分支：`main`
-- 日常：`git add -A && git commit -m "说明" && git push origin main`
+- Agent 内 Git 新手操作：打开 `☰` → `Git`，按 `AI_Model/agent/使用说明.md` 的“Git 是什么，第一次怎么连接”逐步操作。当前项目已有 `origin`，本地提交领先远端，工作树包含尚未提交的本轮修改；尚未推送。
+- `src refspec HEAD does not match any` 表示本机没有提交；先用 Git 页的“暂存并提交”，再推送。

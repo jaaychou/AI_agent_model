@@ -144,6 +144,12 @@ def pull_fast_forward(workspace: str | Path) -> str:
 
 
 def push_current_branch(workspace: str | Path) -> str:
+    try:
+        run_git(workspace, ["rev-parse", "--verify", "HEAD"])
+    except GitError as exc:
+        if "Needed a single revision" in str(exc) or "unknown revision" in str(exc).lower():
+            raise GitError("本地还没有 Git 提交。请先填写提交说明并点击‘暂存并提交’，然后再推送。") from exc
+        raise
     return run_git(workspace, ["push", "-u", "origin", "HEAD"], timeout=300)
 
 

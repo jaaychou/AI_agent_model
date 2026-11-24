@@ -42,6 +42,47 @@ def _normalize_args(args):
     return {}
 
 
+def _strict_args(args):
+    """Parse tool arguments without silently turning malformed JSON into {}."""
+    if args is None:
+        return {}, None
+    if isinstance(args, dict):
+        return args, None
+    if isinstance(args, str):
+        try:
+            parsed = json.loads(args)
+        except (ValueError, TypeError) as exc:
+            return None, f"工具参数不是有效 JSON：{exc}"
+        if isinstance(parsed, dict):
+            return parsed, None
+        return None, "工具参数必须是 JSON 对象"
+    return None, f"工具参数类型无效：{type(args).__name__}"
+
+
+def normalize_raw_tool_message(message: dict) -> tuple[dict, list[str]]:
+    """Return an Ollama-compatible assistant message, preserving tool metadata."""
+    normalized = dict(message)
+    errors = []
+    calls = []
+    for index, call in enumerate(message.get("tool_calls") or []):
+        if not isinstance(call, dict):
+            errors.append(f"第 {index + 1} 个工具调用格式无效")
+            continue
+        copied = dict(call)
+        fn = dict(call.get("function") or {})
+        args, error = _strict_args(fn.get("arguments", call.get("arguments")))
+        if error:
+            errors.append(f"{fn.get('name') or '未知工具'}：{error}")
+        else:
+            fn["arguments"] = args
+        copied["function"] = fn
+        copied.setdefault("index", index)
+        calls.append(copied)
+    if calls:
+        normalized["tool_calls"] = calls
+    return normalized, errors
+
+
 def _extract_json(text: str):
     """从文本里抠出 JSON 对象/数组，兼容 ```json 包裹和前后废话。"""
     if not text:
@@ -79,10 +120,13 @@ def parse_tool_calls(message: dict) -> list[dict]:
         name = fn.get("name") or c.get("name")
         if not name:
             continue
+        args, error = _strict_args(fn.get("arguments", c.get("arguments")))
+        if error:
+            continue
         calls.append({
             "id": c.get("id") or f"call_{i}_{int(time.time()*1000)}",
             "name": name,
-            "arguments": _normalize_args(fn.get("arguments", c.get("arguments"))),
+            "arguments": args,
         })
     if calls:
         return calls
@@ -112,7 +156,7 @@ def parse_tool_calls(message: dict) -> list[dict]:
         calls.append({
             "id": f"json_{i}_{int(time.time()*1000)}",
             "name": name,
-            "arguments": _normalize_args(args),
+            "arguments": _strict_args(args)[0] or {},
         })
     return calls
 
@@ -159,7 +203,7 @@ class OllamaProvider(LLMProvider):
             "messages": normalized_messages,
             "stream": bool(on_token or on_progress),
             # A modest repetition penalty helps small local models avoid phrase loops.
-            "options": options or {"temperature": 0.2, "num_predict": 1024,
+            "options": options or {"temperature": 0.2, "num_predict": 3072,
                                     "repeat_penalty": 1.12, "repeat_last_n": 128,
                                     # Ollama otherwise often allocates only 4K on this 8 GB GPU.
                                     "num_ctx": 8192},
@@ -219,16 +263,21 @@ class OllamaProvider(LLMProvider):
                 msg["thinking"] = "".join(thinking_parts)
             if tool_calls:
                 msg["tool_calls"] = [tool_calls[k] for k in sorted(tool_calls)]
+                msg, tool_call_errors = normalize_raw_tool_message(msg)
+            else:
+                tool_call_errors = []
             if json_candidate and not parse_tool_calls(msg) and on_token:
                 on_token(json_candidate)
             resp["message"] = msg
         else:
             resp = self._post("/api/chat", payload)
             msg = resp.get("message", {})
+            msg, tool_call_errors = normalize_raw_tool_message(msg)
         return {
             "content": msg.get("content") or "",
             "tool_calls": parse_tool_calls(msg),
-            "raw_message": msg,   # 原始消息，回灌时必须原样用它，不能自己重建
+            "raw_message": msg,   # provider 保留 metadata 并规范化 arguments 后的消息，供工具调用回灌
+            "tool_call_errors": tool_call_errors,
             "raw": resp,
         }
 

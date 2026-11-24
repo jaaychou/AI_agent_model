@@ -9,6 +9,17 @@
         "--user-data-dir",
         "D:\\Program\\AI_Model_agent\\AI_Model\\agent\\data\\playwright-profile"
       ]
+    },
+    "email": {
+      "command": "D:\\Program\\AI_Model_agent\\AI_Model\\venv-comfy\\Scripts\\python.exe",
+      "args": ["D:\\Program\\AI_Model_agent\\AI_Model\\agent\\tools\\email_mcp_server.py"],
+      "env": {
+        "EMAIL_IMAP_HOST": "${AGENT_EMAIL_IMAP_HOST}",
+        "EMAIL_IMAP_PORT": "993",
+        "EMAIL_SMTP_HOST": "${AGENT_EMAIL_SMTP_HOST}",
+        "EMAIL_SMTP_PORT": "465",
+        "EMAIL_USER": "${AGENT_EMAIL_USER}"
+      }
     }
   }
 }
