@@ -34,6 +34,7 @@
 - **3b1b Manim 动画**：ManimGL 原版 + 线代本质 16 章源码，已实测渲染 mp4（`scripts/恢复Manim动画环境.bat` 一键恢复）
 - **多模型协同**：A 模型可委托子任务给更擅长的 B 模型（实测成功）；**Mermaid 流程图**实时渲染
 - **运行模式切换**：普通 / L3 计划 / L4 回环；联网搜索 On/Off 开关
+- **编译运行环境**：Python/C/C++/Node/Shell/PowerShell 编译运行（`compile_run`），失败读 stderr 自主重试；MATLAB 探测到才用（当前未完整安装）
 
 ## 运行环境（不进仓库，需另备）
 

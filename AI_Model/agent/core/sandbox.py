@@ -110,19 +110,23 @@ def register_sandbox_tools(registry, confirm=None):
 
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
+            ok = True
             try:
                 proc = subprocess.run(cmd, cwd=str(workdir), env=env, capture_output=True,
                                       text=True, encoding="utf-8", errors="replace", timeout=timeout)
                 out = (proc.stdout or "")[:MAX_OUTPUT]
                 err = (proc.stderr or "")[:MAX_OUTPUT]
                 status = f"退出码：{proc.returncode}"
+                # 关键：编译/运行失败必须让模型看到 ok=False，才会读输出、改代码、重试
+                ok = (proc.returncode == 0)
             except subprocess.TimeoutExpired:
-                out, err, status = "", "", f"超时（{timeout} 秒），进程已被终止；副作用状态未知，请检查产物。"
+                out, err, status, ok = "", "", f"超时（{timeout} 秒），进程已被终止；副作用状态未知，请检查产物。", False
             result = (f"沙盒目录：{workdir}\n命令：{' '.join(cmd)[:300]}\n{status}\n"
+                      f"{'运行成功' if ok else '运行/编译失败——请读下方 stderr 定位错误，修正后重试，不要把失败当成完成'}\n"
                       f"--- stdout ---\n{out}\n--- stderr ---\n{err}")
             result += ("\n\n注意：这不是操作系统级安全沙盒，只是隔离工作目录 + 超时 + 低优先级。"
                        "不要在此运行来路不明的代码。")
-            return ToolResult(True, result)
+            return ToolResult(ok, result)
         finally:
             if cleanup:
                 cleanup_sandbox(workdir)

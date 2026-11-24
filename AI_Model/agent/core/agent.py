@@ -188,6 +188,9 @@ class Agent:
         delegate_intent = bool(re.search(
             r"协同|交给.*模型|让.*模型|换个模型|委托|哪个模型.*(?:擅长|强)|模型.*能力|多模型", text))
         mermaid_intent = bool(re.search(r"mermaid|流程图|时序图|架构图|流程图|关系图", text, re.I))
+        code_intent = bool(re.search(
+            r"编译|运行.*(?:代码|程序|脚本)|c\+\+|cpp|\bc\b语言|matlab|"
+            r"makefile|cmake|\.cpp|\.c\b|build |跑.*代码|执行.*代码", text, re.I))
         sandbox_intent = bool(re.search(
             r"沙盒|隔离.*(?:运行|执行|测试|编译)|安全.*(?:运行|测试|编译)|"
             r"编译.*测试|跑.*(?:代码|脚本|实验)|测试.*代码|try.*code", text))
@@ -345,6 +348,8 @@ class Agent:
                     selected.append(schema)
                 elif name == "render_mermaid" and mermaid_intent:
                     selected.append(schema)
+                elif name in {"build_environment", "compile_run"} and code_intent:
+                    selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
                     "list_dir", "search_files", "grep", "document_to_markdown", "inspect_file", "verify_file", "edit_file",
@@ -369,6 +374,7 @@ class Agent:
                     "scan_ble_beacon", "wifi_profile_passwords", "venv_manager", "plot_chart",
                     "data_analyze", "manim_status", "manim_examples", "manim_render",
                     "list_models_capability", "delegate_to_model", "render_mermaid",
+                    "build_environment", "compile_run",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)
@@ -420,6 +426,7 @@ class Agent:
             "plot_chart", "data_analyze", "current_datetime", "read_file", "list_dir",
             "workspace_info", "discover_tools", "inspect_environment", "sandbox_run",
             "system_status", "install_package", "search_tools",
+            "build_environment", "compile_run",
         }
         selected_names = {
             s.get("function", {}).get("name", "") for s in selected if isinstance(s, dict)

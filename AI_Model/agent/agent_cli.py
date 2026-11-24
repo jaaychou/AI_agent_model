@@ -99,6 +99,7 @@ def make_agent(args, cfg: dict) -> Agent:
     from core.capture_tools import register_capture_tools
     from core.mermaid_tools import register_mermaid_tools
     from core.model_router import register_model_router
+    from core.build_tools import register_build_tools
     register_meta_tools(registry, confirm=confirm)
     register_system_control_tools(registry, confirm=confirm)
     register_web_tools(registry, confirm=confirm)
@@ -115,6 +116,7 @@ def make_agent(args, cfg: dict) -> Agent:
     register_manim_tools(registry)
     register_mermaid_tools(registry)
     register_model_router(registry)
+    register_build_tools(registry)
     # 高危能力：CLI 无 GUI 开关，默认全部关闭，需环境变量显式授权
     import os as _os
     _priv = set()

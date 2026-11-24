@@ -1,12 +1,15 @@
 ---
 name: manim-animation
 description: 用 3b1b 原版 ManimGL 制作数学/线性代数动画：参考《线性代数的本质》源码、写 ManimGL 脚本、渲染 mp4 并预览
-triggers: 做动画, 数学动画, 线性代数动画, 3b1b, manim, 视频演示, eola, 可视化推导
+triggers: 做动画, 数学动画, 线性代数动画, 3b1b, manim, 视频演示, eola, 可视化推导, 随便做一个动画
 ---
 
 # Manim 动画制作（3b1b 原版 ManimGL）
 
 用户要做数学动画、线性代数可视化、模仿 3b1b《线性代数的本质》风格时用本技能。
+
+**铁律：必须真的调用 `manim_render` 把动画渲染成 mp4 并预览。只把 Python 代码打印给用户 = 任务失败。**
+用户就算只说"随便做个动画"也要渲染出真实 mp4，不要只贴代码。
 
 ## 环境（已集成）
 
@@ -41,7 +44,9 @@ class MyScene(Scene):
 4. **渲染**：调用 `manim_render(code=上面脚本, scene="MyScene", resolution="medium", preview=True)`。
 5. **看结果**：成功返回 mp4 路径并在 GUI 弹窗预览；失败返回真实报错，按报错修脚本重试。
 
-## 当前 ManimGL 常用 API（别用老版）
+## 当前 ManimGL 常用 API（别用老版，也别用 ManimCE）
+
+**开头必须是 `from manimlib import *`。** 截图里曾出现 `from manim import *` 是错的——那是社区版 ManimCE，本机没装，照它写必报错。
 
 - 文本：`Text("内容", font_size=48)`（老版是 `OldTexText`/`TexMobject`）
 - 公式：`Tex(r"\\vec{v}")`

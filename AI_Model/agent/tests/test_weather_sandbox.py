@@ -71,7 +71,8 @@ class WeatherSandboxTests(unittest.TestCase):
         res = registry.execute("sandbox_run", {
             "language": "python", "code": "import sys; print('oops', file=sys.stderr); sys.exit(3)",
         })
-        self.assertTrue(res.ok)
+        # 闭环要求：非0退出必须 ok=False，让模型看到失败并修正重试
+        self.assertFalse(res.ok)
         self.assertIn("退出码：3", res.output)
         self.assertIn("oops", res.output)
 
@@ -86,7 +87,7 @@ class WeatherSandboxTests(unittest.TestCase):
         res = registry.execute("sandbox_run", {
             "language": "python", "code": "import time; time.sleep(10)", "timeout": 1,
         })
-        self.assertTrue(res.ok)
+        self.assertFalse(res.ok)  # 超时也是失败信号
         self.assertIn("超时", res.output)
         self.assertIn("副作用状态未知", res.output)
 

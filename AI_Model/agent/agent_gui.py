@@ -1514,6 +1514,7 @@ class AgentApp:
         from core.manim_tools import register_manim_tools
         from core.mermaid_tools import register_mermaid_tools
         from core.model_router import register_model_router
+        from core.build_tools import register_build_tools
         register_meta_tools(registry, confirm=confirm)
         register_system_control_tools(registry, confirm=confirm)
         register_web_tools(registry, confirm=confirm)
@@ -1530,6 +1531,7 @@ class AgentApp:
         register_manim_tools(registry, preview_cb=preview)
         register_mermaid_tools(registry)
         register_model_router(registry)
+        register_build_tools(registry)
         # 高危权限工具：严格按 GUI 开关门控，默认关闭
         # Win+R 命令归入“自主运行命令”授权（auto_run_commands），固件/自启动各自独立授权
         priv_groups = set()
@@ -1566,9 +1568,14 @@ class AgentApp:
              "联网搜索当前已被用户关闭：你没有 web_search 工具，无法核实最新/时效信息。涉及新闻、价格、最新进展时"
              "必须明确说明无法联网核实，绝不能用训练记忆冒充实时搜索结果；静态知识可正常回答。\n"),
             ("用户要画图表/做数据分析/看统计时，主动调用 plot_chart 出图（可弹窗预览）或 data_analyze 分析 CSV/Excel/JSON；"
-             "要隔离的 Python 环境时用 venv_manager 创建。用户说要做数学动画、线性代数动画、参考 3b1b 风格时，"
-             "调用 manim_examples 看线代源码、用 manim_render 写 ManimGL 脚本渲染并预览。"
+             "要隔离的 Python 环境时用 venv_manager 创建。"
              "要画流程图/时序图/架构图时用 render_mermaid 渲染成图。\n"),
+            ("【做动画必须真的渲染——不能只贴代码】用户说『做个动画/用3b1b做个动画/线性代数动画/数学动画』时，"
+             "你必须【自己调用 manim_render 工具】把动画渲染成 mp4 并预览，绝不是把 Python 代码打印给用户看就完事。"
+             "只贴代码不给 mp4 = 任务失败。流程：先 manim_examples 可选看思路 → 写脚本 → 调 manim_render(code=脚本, scene=类名)。\n"
+             "【API 别写错】本机集成的是 3b1b 原版 ManimGL，脚本开头必须是 `from manimlib import *`，"
+             "绝不要写 `from manim import *`(那是社区版 ManimCE，本机没装，照它写必报错)。类名用 Scene 子类。"
+             "渲染失败就按真实报错修脚本重试(常见：API 名错/缺参数)，不要放弃或只贴代码。\n"),
             ("【多模型协同】本机有多个模型，各有专长：写代码/调试→qwen2.5-coder:7b，深度推理/数学→deepseek-r1:8b，"
              "看图→qwen2.5vl:7b，通用→qwen3.5:4b。当任务用别的模型更合适、或你反复做不好时，"
              "先用 list_models_capability 确认，再用 delegate_to_model(model, task) 把子任务交给更擅长的模型，"
@@ -1592,6 +1599,14 @@ class AgentApp:
              "(3) 用户问天气/最新信息 → 立刻自己调 weather/web_search，换个说法(如『今天冷不冷』『穿啥』『热成这样』)也要识别为天气意图；"
              "(4) 用户隐含需求(如『把这个数据直观展示』『给我看看趋势』) → 主动想到 plot_chart/data_analyze，别等用户点名工具；"
              "(5) 工具报错或结果为空 → 换一个工具/参数/方法重试，读真实输出再决定下一步，不要停下来问用户，更不要编造结果。\n"
+             "【命令行自主闭环——极重要】你能在后台 bash/CMD/PowerShell 里自己输命令、读输出、判断成功与否，全程不需要用户操作：\n"
+             "- 用 run_command 执行命令后，必须读真实的『退出码 + stdout/stderr』。退出码 0 才算成功；非 0 就是失败。\n"
+             "- 失败时不要停下问用户，也不要只报告失败：先读 stderr 的错误信息，自己诊断原因(路径错/缺依赖/语法错/权限不足)，"
+             "改成正确的命令或代码再试，直到成功或确认确实做不到。\n"
+             "- 编译/运行代码用 compile_run：它返回真实退出码和错误；编译失败(ok=false)就按 stderr 改代码重试。"
+             "动手前先 build_environment 看本机有哪些编译器/解释器，不要瞎猜路径。\n"
+             "- 多步 shell 任务(如先装依赖再编译再运行再验证产物)要一步步执行并每步核对输出，前一步失败就修正后再走下一步。\n"
+             "- 只有重试多次仍失败、或确实缺用户凭据/管理员授权/物理操作时，才如实说明卡在哪、需要什么；其余情况自己循环解决。\n"
              "只有确实缺少用户凭据(邮箱授权码/API key)或需要物理操作/管理员授权时，才明确告诉用户缺什么、去哪补。除此之外一律自己动手。\n"
              + ("" if mode == "普通模式" else
                 ("当前 L3 模式：复杂多步任务先用 plan_task 列出步骤和目标再执行，逐步推进。\n"
