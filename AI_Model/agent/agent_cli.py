@@ -89,6 +89,10 @@ def make_agent(args, cfg: dict) -> Agent:
     from core.sandbox import register_sandbox_tools
     from core.external_apis import register_external_api_tools
     from core.autonomy import register_autonomy_tools
+    from core.disk_tools import register_disk_tools
+    from core.network_observe import register_network_observe_tools
+    from core.dsp_tools import register_dsp_tools
+    from core.autopilot import register_autopilot_tools
     register_meta_tools(registry, confirm=confirm)
     register_system_control_tools(registry, confirm=confirm)
     register_web_tools(registry, confirm=confirm)
@@ -96,6 +100,10 @@ def make_agent(args, cfg: dict) -> Agent:
     register_sandbox_tools(registry, confirm=confirm)
     register_external_api_tools(registry, confirm=confirm)
     register_autonomy_tools(registry)
+    register_disk_tools(registry, confirm=confirm)
+    register_network_observe_tools(registry, confirm=confirm)
+    register_dsp_tools(registry, confirm=confirm)
+    register_autopilot_tools(registry, confirm=confirm)
     register_dynamic_tools(registry, confirm=confirm)
 
     # Skills

@@ -1379,6 +1379,13 @@ class AgentApp:
             "4e. 面对模糊的多步大任务，先用 plan_task 拆成步骤和验收标准，执行中用 update_plan 更新进度，"
             "结束前用 verify_goal 对照真实证据验收；系统也会在完成前要求你核对，未达标不能说已完成。"
             "工具失败或空转时不要重复相同调用，按提示换一条路径（换工具/换参数/查文档/装工具/缩小范围）。\n"
+            "4f. 底层能力：查磁盘占用/找大文件用 disk_scan、disk_duplicates、disk_usage（WizTree 用户要时可用 launch_wiztree 打开）；"
+            "查 WiFi/蓝牙/实时网速/网络连接用 wifi_status、bluetooth_devices、net_traffic、net_connections（只读系统已暴露状态）；"
+            "信号与信息处理用 dsp_spectrum/dsp_filter/dsp_stats（numpy/scipy 真实计算）。"
+            "注意：这些是只读可观测 + 数值计算，不做抓包、不嗅探蓝牙信号、不读密码、不改驱动/内核。\n"
+            "4g. 用户要'长期自治/持续监控/自己盯着'时，用 start_autopilot 启动围栏式自治：必须给 goal 和 allow_tools 白名单，"
+            "设好 max_seconds/max_cycles/熔断阈值，启动会请求确认；围栏拦截或连续失败会自动停机请示，"
+            "用户可 stop_autopilot 随时叫停，autopilot_report 查看审计日志。绝不越过围栏自行扩大权限。\n"
             "5. 安装、造工具、结束进程、改服务都会请求用户确认；被拒绝就换方案或如实说明。"
             "不要索要密码/令牌，不绕过 UAC，不窃取凭据，也不监听底层硬件信号。\n"
         )
@@ -1419,6 +1426,10 @@ class AgentApp:
         from core.sandbox import register_sandbox_tools
         from core.external_apis import register_external_api_tools
         from core.autonomy import register_autonomy_tools
+        from core.disk_tools import register_disk_tools
+        from core.network_observe import register_network_observe_tools
+        from core.dsp_tools import register_dsp_tools
+        from core.autopilot import register_autopilot_tools
         register_meta_tools(registry, confirm=confirm)
         register_system_control_tools(registry, confirm=confirm)
         register_web_tools(registry, confirm=confirm)
@@ -1426,6 +1437,10 @@ class AgentApp:
         register_sandbox_tools(registry, confirm=confirm)
         register_external_api_tools(registry, confirm=confirm)
         register_autonomy_tools(registry)
+        register_disk_tools(registry, confirm=confirm)
+        register_network_observe_tools(registry, confirm=confirm)
+        register_dsp_tools(registry, confirm=confirm)
+        register_autopilot_tools(registry, confirm=confirm)
         register_dynamic_tools(registry, confirm=confirm)
 
         skills = load_skills(SKILLS_DIR)

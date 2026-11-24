@@ -10,9 +10,10 @@
 | L2 | 给明确指令完成多步固定流程 | 早已超越 |
 | L3 | 给目标自己规划路径（拆步骤、调工具、看结果再走） | ✅ 稳定达到 |
 | L4 | 给模糊需求自主拆解 → 执行 → 验证 → 失败换路径 | ✅ 本轮补齐 |
-| L5 | 完全自主、无人监督长期自治、自我迭代 | ❌ 未达到 |
+| L5 | 围栏内长期自治：目标驱动自循环、自我维持、异常自处理 | ✅ 本轮实现（围栏式） |
+| — | 无边界、无人监督、可自行扩大权限的"真 L5" | ❌ 刻意不做（那是失控，不是自治） |
 
-**结论：本轮之前是 L3（摸到 L4 边），本轮补齐后达到 L4。**
+**结论：本轮之前是 L3（摸到 L4 边），上一轮补齐 L4，本轮（2026-11-24 12:18）进一步实现"围栏式 L5"。**
 
 ### 为什么之前只是 L3，不是 L4？
 
@@ -39,7 +40,33 @@
 - 小模型（4B/8B）可能不会主动调用 plan_task，需在提示里引导；简单任务没必要用计划。
 - 验收闸门只强制"核对"这一动作，最终判断仍依赖模型诚实 + 工具真实证据；不是形式化证明。
 - "自拆解"的质量受模型推理能力限制，复杂需求仍可能需要用户澄清。
-- L5（无人监督长期自治）刻意没做：不该让本地 Agent 在无人确认下长期自主修改系统。
+- 无围栏的"真 L5"（无人监督长期自治）刻意没做：不该让本地 Agent 在无人确认下长期自主修改系统。本轮实现的是**围栏式 L5**，见下一节。
+
+### 本轮实现：围栏式 L5（2026-11-24 12:18）
+
+用户要求"想办法继续把它提升到 L5，并让它有网络抓取、底层信号处理、像 WizTree 一样接触底层的能力"。据此新增四个模块，把 L5 落在**围栏内可验证、可叫停**的自治，而不是无边界放权：
+
+**① `core/autopilot.py` — L5 围栏式自治运行时**
+- `Fence`：声明 `allow_tools` 工具白名单、`max_seconds`/`max_cycles` 上限、连续失败熔断阈值、危险工具是否需确认。
+- `Autopilot.run(goal, think_fn)`：观察 → 决策 → 行动 → 验证 → 记录经验的持续自循环，但受围栏约束：越出白名单即停机请示、超限自动停、连续失败熔断、支持外部 `stop`。
+- 工具 `start_autopilot` / `stop_autopilot` / `autopilot_report`；审计日志 `agent/runtime/autopilot_log.jsonl`。
+
+**② `core/disk_tools.py` — 底层磁盘能力**
+- `disk_scan` / `disk_duplicates` / `disk_usage` / `launch_wiztree`。
+- WizTree 快是因为直读 NTFS MFT；纯 Python 用户态读 MFT 需管理员 + 原始卷句柄 + 复杂解析，不划算。本实现用 `os.scandir` 递归统计 + 顶层子目录聚合 + 重复文件哈希，务实替代，并可直接启动你已装的 WizTree（`D:\Program\wiztree_4_33_portable\WizTree.exe`）。
+
+**③ `core/network_observe.py` — 网络/无线只读可观测**
+- `wifi_status` / `wifi_profiles` / `bluetooth_devices` / `net_traffic` / `net_connections` / `dns_cache`。
+- 实测能读 WiFi（Intel AX201 / SSID / 信号 / 频道）、蓝牙 PnP 设备、按秒采样的实时上下行速率、TCP 连接与 DNS 缓存。
+- **边界（勿删）**：只读系统已暴露的状态，不做抓包、不嗅探蓝牙帧、不读 WiFi 密码。要真正抓包需你明确授权并提供 Npcap/WinPcap 驱动，且涉及无线监听的隐私合规问题。
+
+**④ `core/dsp_tools.py` — 信号处理（信号与系统 / 信息处理层）**
+- `dsp_spectrum`（FFT/Welch 频谱）/ `dsp_filter`（Butterworth）/ `dsp_resample` / `dsp_stats` / `dsp_smooth`，基于 numpy/scipy。
+- 实测 50Hz + 120Hz 合成信号能准确找出 50Hz 主峰。这是"从底层信息处理修改信号"的真实能力基础，不是空谈。
+
+**接入**：GUI/CLI 的 `_build_agent` 注册四模块；`core/agent.py` 新增 `disk_intent` / `netobs_intent` / `dsp_intent` / `autopilot_intent` 意图筛选；系统提示新增 4f（底层能力边界）/ 4g（围栏式 L5）。
+
+**核验**：新增 `tests/test_lowlevel_l5.py` 14 项（磁盘扫描、重复文件、网络只读工具、DSP 频谱/滤波/统计、Fence 白名单、危险工具拦截、连续失败熔断、stop 请求、高危确认），全套 **156 项通过**。
 
 ## 二、它能达到"你（云端大模型）"这样的水平吗？（只回答，未执行）
 

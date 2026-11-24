@@ -152,6 +152,18 @@ class Agent:
             r"计划|规划|拆解|分步|步骤|验收|验证完成|做完整|全流程|端到端|"
             r"帮我(?:做|写|搭|建|实现|完成).{0,20}(?:一整|整套|完整|一套)|"
             r"先.{0,8}再.{0,8}最后|一步步|逐步", text))
+        disk_intent = bool(re.search(
+            r"磁盘|空间|占用|大文件|重复文件|文件大小|哪个文件夹.*大|清理空间|"
+            r"wiztree|扫描.*目录|目录.*大小|占满|剩余空间", text))
+        netobs_intent = bool(re.search(
+            r"wifi|wi-fi|无线|蓝牙|信号强度|网速|流量|实时.*网络|网络连接|"
+            r"dns|网卡|上下行|带宽|监测.*网络|抓包", text))
+        dsp_intent = bool(re.search(
+            r"频谱|fft|滤波|信号|采样|dsp|傅里叶|滤波|频谱分析|信号分析|"
+            r"降噪|重采样|低通|高通|带通|波形", text))
+        autopilot_intent = bool(re.search(
+            r"自治|自主运行|长期运行|持续监控|自动运行|无人值守|"
+            r"l5|autopilot|围栏|自己盯着|自动巡检|一直监测", text))
         sandbox_intent = bool(re.search(
             r"沙盒|隔离.*(?:运行|执行|测试|编译)|安全.*(?:运行|测试|编译)|"
             r"编译.*测试|跑.*(?:代码|脚本|实验)|测试.*代码|try.*code", text))
@@ -281,6 +293,15 @@ class Agent:
                     selected.append(schema)
                 elif name in {"plan_task", "update_plan", "verify_goal"} and planning_intent:
                     selected.append(schema)
+                elif name in {"disk_scan", "disk_duplicates", "disk_usage", "launch_wiztree"} and disk_intent:
+                    selected.append(schema)
+                elif name in {"wifi_status", "wifi_profiles", "bluetooth_devices", "net_traffic",
+                              "net_connections", "dns_cache"} and netobs_intent:
+                    selected.append(schema)
+                elif name in {"dsp_spectrum", "dsp_filter", "dsp_resample", "dsp_stats", "dsp_smooth"} and dsp_intent:
+                    selected.append(schema)
+                elif name in {"start_autopilot", "stop_autopilot", "autopilot_report"} and autopilot_intent:
+                    selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
                     "list_dir", "search_files", "grep", "document_to_markdown", "inspect_file", "verify_file", "edit_file",
@@ -295,6 +316,11 @@ class Agent:
                     "registry_read", "web_fetch", "weather", "sandbox_run", "sandbox_cleanup",
                     "geocode", "route_plan", "search_place", "ticket_query",
                     "plan_task", "update_plan", "verify_goal",
+                    "disk_scan", "disk_duplicates", "disk_usage", "launch_wiztree",
+                    "wifi_status", "wifi_profiles", "bluetooth_devices", "net_traffic",
+                    "net_connections", "dns_cache",
+                    "dsp_spectrum", "dsp_filter", "dsp_resample", "dsp_stats", "dsp_smooth",
+                    "start_autopilot", "stop_autopilot", "autopilot_report",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)
