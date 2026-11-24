@@ -85,9 +85,15 @@ def make_agent(args, cfg: dict) -> Agent:
     from core.meta_tools import register_meta_tools, register_dynamic_tools
     from core.system_control import register_system_control_tools
     from core.web_tools import register_web_tools
+    from core.weather_tools import register_weather_tools
+    from core.sandbox import register_sandbox_tools
+    from core.external_apis import register_external_api_tools
     register_meta_tools(registry, confirm=confirm)
     register_system_control_tools(registry, confirm=confirm)
     register_web_tools(registry, confirm=confirm)
+    register_weather_tools(registry, confirm=confirm)
+    register_sandbox_tools(registry, confirm=confirm)
+    register_external_api_tools(registry, confirm=confirm)
     register_dynamic_tools(registry, confirm=confirm)
 
     # Skills

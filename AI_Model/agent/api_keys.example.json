@@ -1,0 +1,14 @@
+{
+  "_说明": "复制本文件为 api_keys.json 并填入你自己的 key。api_keys.json 已被 .gitignore 排除，不会进仓库。不要把你真实的 key 发给 AI 或提交到 Git。",
+
+  "tencent_map_key": "",
+  "_腾讯地图申请": "https://lbs.qq.com/dev/console/application/mine 注册开发者→创建应用→勾选 WebServiceAPI→获取 Key。用于地理编码/路线规划/地点搜索。合规要求：地图服务只能用腾讯/高德/百度/天地图，本 Agent 默认腾讯。",
+
+  "train_ticket_api": "",
+  "_车票说明": "12306 无公开免费 API。可选：第三方聚合数据服务（如聚合数据、阿里云市场）的火车票/机票查询 API key，或自己抓取（有合规风险，不推荐）。留空则 Agent 只做行程规划，票价/班次让你去官方购票页确认。",
+
+  "flight_api": "",
+  "_机票说明": "同上，航班动态/票价 API 需自行申请（如航旅纵横开放平台、第三方数据商）。留空则不查询实时航班。",
+
+  "notes": "天气已用免费无 key 的 Open-Meteo/wttr.in，无需配置。"
+}

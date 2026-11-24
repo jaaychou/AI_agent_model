@@ -1373,6 +1373,9 @@ class AgentApp:
             "所有写操作都要说明真实结果，失败要报告，绝不编造成功。\n"
             "4b. 要读某个网页/文档正文或做爬虫研究，用 web_fetch 抓取真实页面（遵守 robots.txt，拒内网地址）；"
             "需要 JS 动态渲染或登录交互时用浏览器工具（Playwright MCP）。\n"
+            "4c. 查天气用 weather 工具（免费，按城市名或经纬度），旅游规划时主动查目的地天气。\n"
+            "4d. 跑实验代码、编译测试、验证脚本，优先用 sandbox_run（一次性隔离目录 + 超时 + 自动清理），"
+            "不要直接在工作空间里乱跑；它虽不是 OS 级安全沙盒，但能防止实验弄乱用户文件。用完可 sandbox_cleanup。\n"
             "5. 安装、造工具、结束进程、改服务都会请求用户确认；被拒绝就换方案或如实说明。"
             "不要索要密码/令牌，不绕过 UAC，不窃取凭据，也不监听底层硬件信号。\n"
         )
@@ -1409,9 +1412,15 @@ class AgentApp:
         from core.meta_tools import register_meta_tools, register_dynamic_tools
         from core.system_control import register_system_control_tools
         from core.web_tools import register_web_tools
+        from core.weather_tools import register_weather_tools
+        from core.sandbox import register_sandbox_tools
+        from core.external_apis import register_external_api_tools
         register_meta_tools(registry, confirm=confirm)
         register_system_control_tools(registry, confirm=confirm)
         register_web_tools(registry, confirm=confirm)
+        register_weather_tools(registry, confirm=confirm)
+        register_sandbox_tools(registry, confirm=confirm)
+        register_external_api_tools(registry, confirm=confirm)
         register_dynamic_tools(registry, confirm=confirm)
 
         skills = load_skills(SKILLS_DIR)

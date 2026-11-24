@@ -15,6 +15,8 @@ triggers: 旅游, 旅行, 行程, 攻略, 路线, 订票, 景点, 出游
 - 天气：`web_search` 查目的地对应日期的天气预报（注意临近日期才准确）。
 - 交通：`web_search` + `web_fetch` 查车次/航班/班次与大致票价，注明查询时间和来源平台。
 - 景点：`web_fetch` 抓景区官网或权威平台，核实开放时间、门票、是否需预约、是否闭馆维护。
+- 地图/路线：用 `geocode` / `route_plan` / `search_place`（腾讯地图，合规源）。**这三个需要在 `agent/api_keys.json` 配置 `tencent_map_key`**；未配置时工具会明确告诉你怎么申请，此时改用 `web_search` 查路线信息，别编造坐标/距离。
+- 车票/机票：`ticket_query`。12306 与航司没有公开免费 API，需要在 `api_keys.json` 配置第三方数据服务 key；**未配置就只做行程规划，让用户去 12306/航司官方购票页核实班次票价**，绝不编造。
 - 需要多来源对比时用 `search_tools` 找工具或 `browser`（Playwright MCP）交互查询。
 
 ## 3. 输出行程

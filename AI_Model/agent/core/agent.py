@@ -137,6 +137,13 @@ class Agent:
         fetch_intent = bool(re.search(
             r"抓取|爬取|爬虫|打开这个(?:网址|链接|url)|读取网页|网页正文|页面内容|"
             r"这个网址|这个链接|打开url|fetch|抓取页面|采集|研究.*网页|读.*url", text))
+        weather_intent = bool(re.search(r"天气|气温|下雨|温度|预报|冷不冷|热不热|weather|穿什么", text))
+        map_intent = bool(re.search(
+            r"地图|导航|路线|怎么走|地理编码|坐标|地点搜索|找.*地点|景点位置| driving|驾车路线|公交路线", text))
+        ticket_intent = bool(re.search(r"车票|火车票|高铁票|机票|航班|票价|车次|订票|买票", text))
+        sandbox_intent = bool(re.search(
+            r"沙盒|隔离.*(?:运行|执行|测试|编译)|安全.*(?:运行|测试|编译)|"
+            r"编译.*测试|跑.*(?:代码|脚本|实验)|测试.*代码|try.*code", text))
         integration_intent = bool(re.search(r"github|git 仓库|git仓库|邮箱|邮件|mcp", text))
         file_intent = bool(re.search(
             r"文件|目录|文件夹|工作空间|工作区|路径|读取|读一下|创建|新建|写入|保存|修改|编辑|删除|移动|复制|重命名|搜索文件|查找文件|压缩包|解压|校验文件|检查文件|下载|\.(?:txt|md|py|bat|cmd|ps1|js|ts|c|cpp|h|hpp|json|html|css|pdf|docx?|xlsx?|xlsm|pptx?|pptm|zip|7z|rar|exe)\b",
@@ -253,6 +260,14 @@ class Agent:
                     selected.append(schema)
                 elif name == "web_fetch" and (fetch_intent or search_intent or browser_intent):
                     selected.append(schema)
+                elif name == "weather" and weather_intent:
+                    selected.append(schema)
+                elif name in {"sandbox_run", "sandbox_cleanup"} and sandbox_intent:
+                    selected.append(schema)
+                elif name in {"geocode", "route_plan", "search_place"} and map_intent:
+                    selected.append(schema)
+                elif name == "ticket_query" and ticket_intent:
+                    selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
                     "list_dir", "search_files", "grep", "document_to_markdown", "inspect_file", "verify_file", "edit_file",
@@ -264,7 +279,8 @@ class Agent:
                     "create_tool", "write_tool_script",
                     "system_status", "list_processes", "terminate_process", "list_windows",
                     "list_services", "service_control", "serial_ports", "serial_comm", "env_vars",
-                    "registry_read", "web_fetch",
+                    "registry_read", "web_fetch", "weather", "sandbox_run", "sandbox_cleanup",
+                    "geocode", "route_plan", "search_place", "ticket_query",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)

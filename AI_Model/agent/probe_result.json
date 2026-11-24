@@ -1,0 +1,43 @@
+{
+  "tested_at": "2026-11-24T11:40:10+08:00",
+  "endpoint": "http://127.0.0.1:11434",
+  "method": "/api/chat + tools schema",
+  "results": [
+    {
+      "model": "qwen3.5:4b",
+      "status": "OK",
+      "elapsed_sec": 7.4,
+      "tool_calls": 1,
+      "called_name": "get_weather",
+      "arguments": {
+        "city": "武汉"
+      },
+      "content": "",
+      "verdict": "标准 function calling 正常"
+    },
+    {
+      "model": "deepseek-r1:8b",
+      "status": "NO_TOOL_CALL",
+      "elapsed_sec": 11.3,
+      "tool_calls": 0,
+      "content": "",
+      "thinking": "\n嗯，用户问的是武汉现在的天气情况，还特意提到要调用get_weather工具查询。看来ta可能正在计划户外活动，或者只是单纯想了解实时天气。考虑到天气对日常生活的影响很大，用户或许希望得到准确且详细的天气信息，比如温度、湿度、风速、降水概",
+      "verdict": "未返回标准 tool_calls（可能纯文本/JSON 或非标准格式，需要兼容层）"
+    },
+    {
+      "model": "qwen2.5-coder:7b",
+      "status": "NO_TOOL_CALL",
+      "elapsed_sec": 5.5,
+      "tool_calls": 0,
+      "content": "{\"name\": \"get_weather\", \"arguments\": {\"city\": \"武汉\"}}",
+      "thinking": "",
+      "verdict": "未返回标准 tool_calls（可能纯文本/JSON 或非标准格式，需要兼容层）"
+    },
+    {
+      "model": "qwen2.5vl:7b",
+      "status": "ERROR",
+      "error": "HTTP 400: {\"error\":\"registry.ollama.ai/library/qwen2.5vl:7b does not support tools\"}",
+      "verdict": "模型不支持 tools（Ollama 明确返回 does not support tools）"
+    }
+  ]
+}

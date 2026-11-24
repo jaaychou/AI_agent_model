@@ -140,7 +140,8 @@ def parse_tool_calls(message: dict) -> list[dict]:
     for i, item in enumerate(items):
         if not isinstance(item, dict):
             continue
-        name = item.get("name") or item.get("tool")
+        # 兼容多种模型命名：name/tool（qwen2.5-coder）、action（deepseek-r1）
+        name = item.get("name") or item.get("tool") or item.get("action")
         # 也兼容 {"read_file": {"path": "..."}} 这种格式
         if not name and len(item) == 1:
             k, v = next(iter(item.items()))
@@ -149,8 +150,9 @@ def parse_tool_calls(message: dict) -> list[dict]:
             else:
                 continue
         else:
-            args = item.get("arguments") or item.get("args") or {}
-            args = {k: v for k, v in item.items() if k not in ("name", "tool", "arguments", "args")} or args
+            args = item.get("arguments") or item.get("args") or item.get("parameters") or {}
+            args = {k: v for k, v in item.items()
+                    if k not in ("name", "tool", "action", "arguments", "args", "parameters")} or args
         if not name:
             continue
         calls.append({
