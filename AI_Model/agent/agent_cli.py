@@ -88,12 +88,14 @@ def make_agent(args, cfg: dict) -> Agent:
     from core.weather_tools import register_weather_tools
     from core.sandbox import register_sandbox_tools
     from core.external_apis import register_external_api_tools
+    from core.autonomy import register_autonomy_tools
     register_meta_tools(registry, confirm=confirm)
     register_system_control_tools(registry, confirm=confirm)
     register_web_tools(registry, confirm=confirm)
     register_weather_tools(registry, confirm=confirm)
     register_sandbox_tools(registry, confirm=confirm)
     register_external_api_tools(registry, confirm=confirm)
+    register_autonomy_tools(registry)
     register_dynamic_tools(registry, confirm=confirm)
 
     # Skills

@@ -1376,6 +1376,9 @@ class AgentApp:
             "4c. 查天气用 weather 工具（免费，按城市名或经纬度），旅游规划时主动查目的地天气。\n"
             "4d. 跑实验代码、编译测试、验证脚本，优先用 sandbox_run（一次性隔离目录 + 超时 + 自动清理），"
             "不要直接在工作空间里乱跑；它虽不是 OS 级安全沙盒，但能防止实验弄乱用户文件。用完可 sandbox_cleanup。\n"
+            "4e. 面对模糊的多步大任务，先用 plan_task 拆成步骤和验收标准，执行中用 update_plan 更新进度，"
+            "结束前用 verify_goal 对照真实证据验收；系统也会在完成前要求你核对，未达标不能说已完成。"
+            "工具失败或空转时不要重复相同调用，按提示换一条路径（换工具/换参数/查文档/装工具/缩小范围）。\n"
             "5. 安装、造工具、结束进程、改服务都会请求用户确认；被拒绝就换方案或如实说明。"
             "不要索要密码/令牌，不绕过 UAC，不窃取凭据，也不监听底层硬件信号。\n"
         )
@@ -1415,12 +1418,14 @@ class AgentApp:
         from core.weather_tools import register_weather_tools
         from core.sandbox import register_sandbox_tools
         from core.external_apis import register_external_api_tools
+        from core.autonomy import register_autonomy_tools
         register_meta_tools(registry, confirm=confirm)
         register_system_control_tools(registry, confirm=confirm)
         register_web_tools(registry, confirm=confirm)
         register_weather_tools(registry, confirm=confirm)
         register_sandbox_tools(registry, confirm=confirm)
         register_external_api_tools(registry, confirm=confirm)
+        register_autonomy_tools(registry)
         register_dynamic_tools(registry, confirm=confirm)
 
         skills = load_skills(SKILLS_DIR)

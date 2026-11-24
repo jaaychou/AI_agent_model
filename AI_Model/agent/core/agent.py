@@ -51,6 +51,10 @@ class AgentConfig:
     log_callback: object = None      # GUI 用：每步日志回调 fn(str)
     token_callback: object = None    # GUI 用：流式文本回调 fn(str)
     progress_callback: object = None # GUI 用：隐藏推理阶段的活动提示 fn(str)
+    # L4 自主闭环：任务规划 + 完成前验收 + 失败换路径（默认开启）
+    planning_enabled: bool = True
+    verify_before_finish: bool = True
+    max_strategy_switches: int = 3
 
 
 class Agent:
@@ -65,6 +69,8 @@ class Agent:
         self._last_mail_unread_only = False
         self._last_mail_received_after: str | None = None
         self._last_mail_received_before: str | None = None
+        # L4 闭环状态：计划实际存在 registry 上（工具与循环共享同一份）
+        self._strategy_switches = 0
         if system_prompt:
             self.messages.append({"role": "system", "content": system_prompt})
 
@@ -141,6 +147,11 @@ class Agent:
         map_intent = bool(re.search(
             r"地图|导航|路线|怎么走|地理编码|坐标|地点搜索|找.*地点|景点位置| driving|驾车路线|公交路线", text))
         ticket_intent = bool(re.search(r"车票|火车票|高铁票|机票|航班|票价|车次|订票|买票", text))
+        # 复杂/模糊多步任务 → 让模型看得到规划与验收工具（L4 闭环）
+        planning_intent = bool(re.search(
+            r"计划|规划|拆解|分步|步骤|验收|验证完成|做完整|全流程|端到端|"
+            r"帮我(?:做|写|搭|建|实现|完成).{0,20}(?:一整|整套|完整|一套)|"
+            r"先.{0,8}再.{0,8}最后|一步步|逐步", text))
         sandbox_intent = bool(re.search(
             r"沙盒|隔离.*(?:运行|执行|测试|编译)|安全.*(?:运行|测试|编译)|"
             r"编译.*测试|跑.*(?:代码|脚本|实验)|测试.*代码|try.*code", text))
@@ -268,6 +279,8 @@ class Agent:
                     selected.append(schema)
                 elif name == "ticket_query" and ticket_intent:
                     selected.append(schema)
+                elif name in {"plan_task", "update_plan", "verify_goal"} and planning_intent:
+                    selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
                     "list_dir", "search_files", "grep", "document_to_markdown", "inspect_file", "verify_file", "edit_file",
@@ -281,6 +294,7 @@ class Agent:
                     "list_services", "service_control", "serial_ports", "serial_comm", "env_vars",
                     "registry_read", "web_fetch", "weather", "sandbox_run", "sandbox_cleanup",
                     "geocode", "route_plan", "search_place", "ticket_query",
+                    "plan_task", "update_plan", "verify_goal",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)
@@ -596,6 +610,11 @@ class Agent:
     def run(self, user_input: str, images: list[str] | None = None) -> str:
         """跑一次完整任务，返回最终答案。"""
         self._trim_context()
+        self._verification_done = False
+        self._strategy_switches = 0
+        # 新任务：清空上一轮计划，避免误用旧验收标准
+        if hasattr(self.registry, "current_plan"):
+            self.registry.current_plan = None
         previous_history = list(self.messages)
         user_message = {"role": "user", "content": user_input}
         if images:
@@ -846,6 +865,18 @@ class Agent:
 
             if not calls:
                 # 没有工具调用 = 模型认为任务完成
+                # L4 验收闸门：有计划的复杂任务，结束前强制核对验收标准（只触发一次）
+                active_plan = getattr(self.registry, "current_plan", None)
+                if (self.config.verify_before_finish and self.config.planning_enabled
+                        and active_plan and not getattr(self, "_verification_done", False)
+                        and active_plan.acceptance):
+                    self._verification_done = True
+                    self._log("完成前验收：核对验收标准")
+                    from .autonomy import build_verification_prompt
+                    verify_prompt = build_verification_prompt(active_plan, task_trace)
+                    self.messages.append({"role": "assistant", "content": content})
+                    self.messages.append({"role": "user", "content": verify_prompt})
+                    continue
                 self.messages.append({"role": "assistant", "content": content})
                 return content or "当前模型没有生成可见回答；模型未自动切换。可以重试，或查看 Ollama 日志排查空回复。"
 
@@ -877,7 +908,16 @@ class Agent:
                 )
                 loop_reason = loop_detector.observe(name, args, result)
                 if loop_reason:
-                    answer = (f"已停止自动循环：{loop_reason}。最后工具结果已保留；请检查真实输出或提供不同路径/信息，"
+                    if self.config.planning_enabled and self._strategy_switches < self.config.max_strategy_switches:
+                        # L4 自修正：不直接停，给具体换路建议让模型重试
+                        self._strategy_switches += 1
+                        self._log(f"检测到空转，触发策略切换 {self._strategy_switches}/{self.config.max_strategy_switches}")
+                        from .autonomy import build_strategy_prompt
+                        switch_prompt = build_strategy_prompt(name, loop_reason, self._strategy_switches - 1)
+                        self.messages.append({"role": "user", "content": switch_prompt})
+                        continue
+                    answer = (f"已停止自动循环：{loop_reason}。已尝试 {self._strategy_switches} 次换路径仍无进展。"
+                              "最后工具结果已保留；请检查真实输出或提供不同路径/信息，"
                               "我不会把未完成的操作报告为成功。")
                     self.messages.append({"role": "assistant", "content": answer})
                     return answer

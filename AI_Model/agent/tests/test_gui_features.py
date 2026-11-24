@@ -578,7 +578,9 @@ class GUIFeatureTests(unittest.TestCase):
             calls.append(name)
             return original_execute(name, args)
         registry.execute = counted_execute
-        result = Agent(Provider(), registry, config=AgentConfig(max_steps=20, step_delay=0)).run('完成一项多步操作')
+        # 关闭 L4 策略切换，单独验证底层检测器：检测到周期重复即停止
+        result = Agent(Provider(), registry,
+                       config=AgentConfig(max_steps=20, step_delay=0, planning_enabled=False)).run('完成一项多步操作')
         self.assertIn('以 2 步为周期重复', result)
         self.assertEqual(calls, ['tool_a', 'tool_b', 'tool_a', 'tool_b'])
 
