@@ -143,7 +143,11 @@ class Agent:
         fetch_intent = bool(re.search(
             r"抓取|爬取|爬虫|打开这个(?:网址|链接|url)|读取网页|网页正文|页面内容|"
             r"这个网址|这个链接|打开url|fetch|抓取页面|采集|研究.*网页|读.*url", text))
-        weather_intent = bool(re.search(r"天气|气温|下雨|温度|预报|冷不冷|热不热|weather|穿什么", text))
+        weather_intent = bool(re.search(
+            r"天气|气温|下雨|温度|预报|weather|穿什么|冷不冷|热不热|"
+            r"多少度|几度|下不下雨|会不会下雨|冷吗|热吗|冻不冻|闷热|"
+            r"今天.*(?:冷|热|穿|温度|下雨|出门)|外面.*(?:冷|热|温度)|"
+            r"要不要带伞|带伞|防晒|空气质量|紫外线|台风|降温|回暖", text, re.I))
         map_intent = bool(re.search(
             r"地图|导航|路线|怎么走|地理编码|坐标|地点搜索|找.*地点|景点位置| driving|驾车路线|公交路线", text))
         ticket_intent = bool(re.search(r"车票|火车票|高铁票|机票|航班|票价|车次|订票|买票", text))
@@ -175,9 +179,15 @@ class Agent:
             r"packet capture|wifi.*密码|无线密码|ble.*sniff", text, re.I))
         data_intent = bool(re.search(
             r"画(?:个|张|幅)?图|绘图|图表|折线|柱状|散点|直方图|饼图|可视化|"
-            r"数据分析|统计|分组|csv|excel|xlsx|pandas|虚拟环境|venv|隔离环境", text, re.I))
+            r"数据分析|统计|分组|csv|excel|xlsx|pandas|虚拟环境|venv|隔离环境|"
+            r"直观展示|直观看|看得直观|看看趋势|趋势图|分布|对比图|"
+            r"整个图|做个图|生成图|展示一下|整理成表|汇总|报表|"
+            r"有多少|占比|排行|排名|top\d*|均值|平均", text, re.I))
         manim_intent = bool(re.search(
             r"manim|动画|3b1b|线性代数.*(?:动画|视频)|数学动画|eola|essence of linear|渲染.*视频", text, re.I))
+        delegate_intent = bool(re.search(
+            r"协同|交给.*模型|让.*模型|换个模型|委托|哪个模型.*(?:擅长|强)|模型.*能力|多模型", text))
+        mermaid_intent = bool(re.search(r"mermaid|流程图|时序图|架构图|流程图|关系图", text, re.I))
         sandbox_intent = bool(re.search(
             r"沙盒|隔离.*(?:运行|执行|测试|编译)|安全.*(?:运行|测试|编译)|"
             r"编译.*测试|跑.*(?:代码|脚本|实验)|测试.*代码|try.*code", text))
@@ -201,8 +211,10 @@ class Agent:
         archive_intent = bool(re.search(r"zip|压缩包|压缩文件|打包文件|解压|解压缩", text))
         download_intent = bool(re.search(r"下载", text))
         command_intent = bool(re.search(
-            r"命令|powershell|\bcmd\b|终端|shell|编译|构建|测试|运行代码|执行代码|安装依赖|下载工具|pip|npm|git clone|git pull|排错|调试程序",
-            text,
+            r"命令|powershell|\bcmd\b|终端|shell|编译|构建|测试|运行代码|执行代码|安装依赖|下载工具|"
+            r"pip|npm|git clone|git pull|排错|调试程序|"
+            r"有多少.*应用|多少.*软件|装了.*(?:什么|哪些|多少)|应用列表|软件列表|程序列表|"
+            r"进程|端口|服务|环境变量|系统信息|配置|查一下.*(?:版本|状态)", text,
         ))
         python_run_intent = bool(re.search(r"运行|执行|测试|跑一下|跑一跑", text)) and bool(
             re.search(r"python|\.py\b|脚本", text, re.I))
@@ -329,6 +341,10 @@ class Agent:
                     selected.append(schema)
                 elif name in {"manim_status", "manim_examples", "manim_render"} and manim_intent:
                     selected.append(schema)
+                elif name in {"list_models_capability", "delegate_to_model"} and delegate_intent:
+                    selected.append(schema)
+                elif name == "render_mermaid" and mermaid_intent:
+                    selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
                     "list_dir", "search_files", "grep", "document_to_markdown", "inspect_file", "verify_file", "edit_file",
@@ -352,6 +368,7 @@ class Agent:
                     "startup_manager", "capture_status", "capture_packets", "scan_wifi_80211",
                     "scan_ble_beacon", "wifi_profile_passwords", "venv_manager", "plot_chart",
                     "data_analyze", "manim_status", "manim_examples", "manim_render",
+                    "list_models_capability", "delegate_to_model", "render_mermaid",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)
@@ -394,6 +411,25 @@ class Agent:
                 continue
             if integration_intent and any(alias in text for alias in aliases):
                 selected.append(schema)
+
+        # ---- 通用兜底：高频"动手"工具永远可见，不依赖关键词命中 ----
+        # 这是解决"换个说法就不会调用工具/光说不做"的关键：模型手里始终有能干活的工具。
+        # 只放最常用且上下文开销可控的核心工具，不把全部 schema 塞进去。
+        ALWAYS_AVAILABLE = {
+            "run_command", "web_search", "weather", "open_application", "open_file",
+            "plot_chart", "data_analyze", "current_datetime", "read_file", "list_dir",
+            "workspace_info", "discover_tools", "inspect_environment", "sandbox_run",
+            "system_status", "install_package", "search_tools",
+        }
+        selected_names = {
+            s.get("function", {}).get("name", "") for s in selected if isinstance(s, dict)
+        }
+        for schema in schemas:
+            function = schema.get("function", {})
+            name = function.get("name", "")
+            if name in ALWAYS_AVAILABLE and name not in selected_names:
+                selected.append(schema)
+                selected_names.add(name)
         return selected
 
     @staticmethod

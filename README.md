@@ -2,7 +2,7 @@
 
 本地 AI Agent 与本地模型部署工程（离线优先，不依赖云端积分）。
 
-> 最近复核：2026-11-23 20:40:23（GMT+8）
+> 最近复核：2026-11-24 13:10（GMT+8）
 
 ## 快速开始
 
@@ -10,10 +10,12 @@
 
 ## 读文档的顺序（换 AI 接手请照此顺序）
 
-1. `AI_Model/交接文档.md` — 全貌、精确到秒的时间线、10 个技术坑、Git 交接、后续 roadmap
-2. `AI_Model/agent/使用说明.md` — GUI 全部功能与操作
-3. `AI_Model/使用说明.md` — 模型 / 生图 / 资源守护底座
-4. `.workbuddy/memory/2026-11-23.md` — 逐轮排错细节
+1. `AI_Model/交接文档.md` — 全貌、精确到秒的时间线、技术坑、Git 交接、后续 roadmap
+2. `AI_Model/agent/README.md` — Agent 子项目结构与工具一览
+3. `AI_Model/agent/使用说明.md` — GUI 全部功能与操作
+4. `AI_Model/使用说明.md` — 模型 / 生图 / 资源守护底座
+5. `AI_Model/docs/` — 专题文档（能力等级、能力清单、新模型集成与权限边界）
+6. `.workbuddy/memory/` — 逐轮排错细节（按日期）
 
 ## 内容概览
 
@@ -26,6 +28,12 @@
 - ComfyUI + Z-Image-Turbo 本地文生图
 - 资源守护程序（防显存/内存爆满导致蓝屏）
 - Open WebUI + 联网搜索/代码执行工具
+- **围栏式 L5 自治**（autopilot）+ 底层能力：磁盘扫描、WiFi/蓝牙只读观测、实时网速、DSP 频谱/滤波
+- **高级权限开关**（默认关，逐项授权）：固件/BIOS 只读、开机自启动、Win+R 命令、网络抓包（Npcap+管理员）
+- **数据能力**：matplotlib 画图弹窗预览、pandas 分析、隔离 venv
+- **3b1b Manim 动画**：ManimGL 原版 + 线代本质 16 章源码，已实测渲染 mp4（`scripts/恢复Manim动画环境.bat` 一键恢复）
+- **多模型协同**：A 模型可委托子任务给更擅长的 B 模型（实测成功）；**Mermaid 流程图**实时渲染
+- **运行模式切换**：普通 / L3 计划 / L4 回环；联网搜索 On/Off 开关
 
 ## 运行环境（不进仓库，需另备）
 
@@ -36,5 +44,5 @@
 
 - 远端：`https://github.com/jaaychou/AI_agent_model.git`（注意是 `jaaychou`）
 - 分支：`main`
-- Agent 内 Git 新手操作：打开 `☰` → `Git`，按 `AI_Model/agent/使用说明.md` 的“Git 是什么，第一次怎么连接”逐步操作。当前项目已有 `origin`，本地提交领先远端，工作树包含尚未提交的本轮修改；尚未推送。
+- Agent 内 Git 新手操作：打开 `☰` → `Git`，按 `AI_Model/agent/使用说明.md` 的“Git 是什么，第一次怎么连接”逐步操作。当前已配置 `origin`，本地与远端 `main` 已同步（最新提交 `c11dda8`，本轮改动提交后会更新）。
 - `src refspec HEAD does not match any` 表示本机没有提交；先用 Git 页的“暂存并提交”，再推送。

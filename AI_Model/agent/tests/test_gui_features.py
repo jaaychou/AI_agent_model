@@ -535,7 +535,9 @@ class GUIFeatureTests(unittest.TestCase):
                    tool('mcp_playwright_browser_click', '[MCP:playwright] click'),
                    tool('mcp_playwright_browser_evaluate', '[MCP:playwright] evaluate')]
         local = Agent._select_relevant_tools(schemas, '生成一张小猫照片')
-        self.assertEqual([s['function']['name'] for s in local], [])
+        local_names = [s['function']['name'] for s in local]
+        self.assertIn('read_file', local_names)  # 兜底核心工具
+        self.assertFalse([n for n in local_names if n.startswith('mcp_')])  # 无浏览器意图不加载 MCP
         browser = Agent._select_relevant_tools(schemas, '用浏览器打开网页并点击登录')
         names = [s['function']['name'] for s in browser]
         self.assertIn('mcp_playwright_browser_navigate', names)
@@ -554,12 +556,16 @@ class GUIFeatureTests(unittest.TestCase):
         def tool(name):
             return {'type': 'function', 'function': {'name': name, 'description': name, 'parameters': {'type': 'object', 'properties': {}}}}
         schemas = [tool(name) for name in ('read_file', 'write_file', 'run_command', 'run_python_file', 'web_search', 'generate_image', 'query_devices')]
-        casual = Agent._select_relevant_tools(schemas, '你好')
-        self.assertEqual(casual, [])
-        image = Agent._select_relevant_tools(schemas, '生成一张小猫图片')
-        self.assertEqual([item['function']['name'] for item in image], ['generate_image'])
-        file_task = Agent._select_relevant_tools(schemas, '读取 notes.txt 内容')
-        self.assertEqual([item['function']['name'] for item in file_task], ['read_file'])
+        casual = {s['function']['name'] for s in Agent._select_relevant_tools(schemas, '你好')}
+        # 兜底核心工具常驻，但生成图片/写文件等非核心按意图
+        self.assertIn('read_file', casual)
+        self.assertIn('run_command', casual)
+        self.assertNotIn('generate_image', casual)
+        self.assertNotIn('write_file', casual)
+        image = {s['function']['name'] for s in Agent._select_relevant_tools(schemas, '生成一张小猫图片')}
+        self.assertIn('generate_image', image)
+        file_task = {s['function']['name'] for s in Agent._select_relevant_tools(schemas, '读取 notes.txt 内容')}
+        self.assertIn('read_file', file_task)
         run_python = Agent._select_relevant_tools(schemas, '运行 Python 文件 demo.py')
         self.assertIn('run_python_file', [item['function']['name'] for item in run_python])
 

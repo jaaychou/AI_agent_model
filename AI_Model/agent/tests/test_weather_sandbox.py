@@ -100,10 +100,13 @@ class WeatherSandboxTests(unittest.TestCase):
         selected = Agent._select_relevant_tools(schemas, "在隔离环境跑一段测试代码")
         self.assertIn("sandbox_run", {s["function"]["name"] for s in selected})
 
-    def test_plain_chat_no_tools(self):
+    def test_plain_chat_only_core_tools(self):
+        # 新策略：核心工具(weather 等)常驻兜底可见，非核心(sandbox_run)按意图加载
         schemas = [{"type": "function", "function": {"name": "weather", "description": "x"}},
                    {"type": "function", "function": {"name": "sandbox_run", "description": "x"}}]
-        self.assertEqual(Agent._select_relevant_tools(schemas, "你好"), [])
+        names = {s["function"]["name"] for s in Agent._select_relevant_tools(schemas, "你好")}
+        self.assertIn("weather", names)      # 兜底核心工具
+        self.assertIn("sandbox_run", names)  # 沙盒也常驻：让 Agent 随时能跑代码/实验
 
 
 if __name__ == "__main__":

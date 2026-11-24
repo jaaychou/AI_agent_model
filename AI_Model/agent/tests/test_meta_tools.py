@@ -180,7 +180,9 @@ class MetaToolTests(unittest.TestCase):
             {"type": "function", "function": {"name": "create_tool", "description": "x"}},
         ]
         selected = Agent._select_relevant_tools(schemas, "卡尔曼滤波是什么？")
-        self.assertEqual(selected, [])
+        names = {s["function"]["name"] for s in selected}
+        self.assertIn("discover_tools", names)  # 兜底：让 Agent 时刻知道能自查工具
+        self.assertNotIn("create_tool", names)  # 造工具按元意图加载
 
 
 if __name__ == "__main__":
