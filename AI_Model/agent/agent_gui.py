@@ -1356,6 +1356,25 @@ class AgentApp:
         except Exception as e:
             self.msg_queue.put(("backend_error", str(e)))
 
+    def _meta_cognition_prompt(self):
+        """告诉模型：工具不够时如何自我扩展（发现→搜索→安装→自造→底层控制）。"""
+        return (
+            "\n## 工具不够用时如何自我扩展（重要）\n"
+            "你是一个会自己找办法的 Agent，不是只能调用写死的工具。"
+            "遇到现有工具解决不了的任务，按这个顺序思考，不要直接说做不到：\n"
+            "1. 不确定自己有什么能力时，先调用 discover_tools 看清全部工具，inspect_environment 看本机现成的库和命令。\n"
+            "2. 需要一个没有的能力（如某种文件格式、串口、OCR、特定算法库）时，先 search_tools 搜 PyPI，"
+            "也可用 web_search 搜其他来源；找到后用 install_package 装进隔离目录。\n"
+            "3. 装好的库没有现成工具时，用 create_tool 自己写一个工具脚本（定义 run(args) 函数，可选 TOOL_META），"
+            "注册后本次和以后都能调用。写之前想清输入输出，写完先用一个小例子验证结果，再交给用户。\n"
+            "4. 要观察或控制底层系统：system_status 看硬件、list_processes/terminate_process 管理进程、"
+            "list_windows 确认窗口、list_services/service_control 管服务、serial_ports 查串口、"
+            "env_vars 查环境变量、registry_read 读注册表；更底层的操作用 run_command 调用 PowerShell/CMD。"
+            "所有写操作都要说明真实结果，失败要报告，绝不编造成功。\n"
+            "5. 安装、造工具、结束进程、改服务都会请求用户确认；被拒绝就换方案或如实说明。"
+            "不要索要密码/令牌，不绕过 UAC，不窃取凭据，也不监听底层硬件信号。\n"
+        )
+
     def _build_agent(self, workspace=None, model=None):
         from core.tools import ToolRegistry, register_builtin_tools
         from core.agent import Agent, AgentConfig
@@ -1384,6 +1403,13 @@ class AgentApp:
                                image_callback=lambda path: self.msg_queue.put(("generated_image", path)),
                                progress_callback=lambda data: self.msg_queue.put(("task_progress", data)),
                                default_model=model or self.model_var.get())
+        # 元工具：自我发现 / 联网搜工具 / 隔离安装 / 自造工具 / 底层系统控制
+        from core.meta_tools import register_meta_tools, register_dynamic_tools
+        from core.system_control import register_system_control_tools
+        register_meta_tools(registry, confirm=confirm)
+        register_system_control_tools(registry, confirm=confirm)
+        register_dynamic_tools(registry, confirm=confirm)
+
         skills = load_skills(SKILLS_DIR)
         register_skill_tools(registry, skills)
         skills_prompt = build_skills_prompt(skills)
@@ -1410,6 +1436,7 @@ class AgentApp:
              "文本文件创建用 write_file，已有文本的精确修改用 edit_file；Office/压缩包/EXE 等二进制不能伪装成文本，按格式读取、复制、下载、解压或编译，完成后用 verify_file/哈希/真实状态检查。"
              "绝不声称工具未验证的成功。不得把启动进程说成窗口已显示，也不得把预期当作验证。完成后简洁说明证据与限制。\n"
              if self.tools_enabled else "如果用户要求修改本地文件或执行命令，请说明当前所选模型不支持本地工具操作。\n"),
+            self._meta_cognition_prompt() if self.tools_enabled else "",
             skills_prompt,
         ))
 

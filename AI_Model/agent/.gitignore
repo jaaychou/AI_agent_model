@@ -15,6 +15,12 @@ mcp_servers.json
 .env.*
 !.env.example
 
+# Self-extension runtime: installed packages and user/agent-authored tools stay local
+runtime/vendor/
+runtime/tool_index.json
+dynamic_tools/
+!skills/self-extension/
+
 # Downloaded tools and model assets
 tools/*/node_modules/
 tools/*/.cache/

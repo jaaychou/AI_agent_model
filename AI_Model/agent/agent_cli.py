@@ -81,6 +81,13 @@ def make_agent(args, cfg: dict) -> Agent:
     registry = ToolRegistry(workspace=workspace, confirm_callback=confirm)
     register_builtin_tools(registry)
 
+    # Meta tools (self-discovery / tool search / install / self-authoring)
+    from core.meta_tools import register_meta_tools, register_dynamic_tools
+    from core.system_control import register_system_control_tools
+    register_meta_tools(registry, confirm=confirm)
+    register_system_control_tools(registry, confirm=confirm)
+    register_dynamic_tools(registry, confirm=confirm)
+
     # Skills
     skills = load_skills(SKILLS_DIR)
     register_skill_tools(registry, skills)

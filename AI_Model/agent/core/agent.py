@@ -166,6 +166,14 @@ class Agent:
         time_intent = is_current_time_request(text)
         location_intent = is_network_location_request(text)
         search_intent = is_live_search_request(text)
+        # 元能力 / 底层控制意图：让"工具不够→找工具→装工具→造工具"这条链能被模型看到
+        meta_intent = bool(re.search(
+            r"你有什么工具|有哪些工具|能做什么|发现工具|找工具|搜索工具|安装.*(?:库|包|工具)|"
+            r"装个|pip|pypi|造一个工具|写个工具|自制工具|自己.*工具|扩展.*能力|环境.*(?:有哪些|装了)|"
+            r"实现了吗|做得到吗|能不能做|有没有.*工具|帮我.*工具", text))
+        system_control_intent = bool(re.search(
+            r"进程|服务|串口|com口|注册表|环境变量|硬件|系统状态|cpu|内存|磁盘|显卡|"
+            r"窗口|杀死进程|结束进程|关闭进程|启动了没|打开.*窗口", text))
         has_specific_file_action = any((read_file_intent, create_file_intent, edit_file_intent,
                                         delete_file_intent, copy_file_intent, move_file_intent,
                                         filename_search_intent, content_search_intent, archive_intent,
@@ -232,6 +240,14 @@ class Agent:
                     selected.append(schema)
                 elif name in {"capture_local_network", "scan_wifi_80211", "scan_ble_beacon"} and device_intent:
                     selected.append(schema)
+                elif name in {"discover_tools", "inspect_environment"} and (meta_intent or system_control_intent):
+                    selected.append(schema)
+                elif name in {"search_tools", "install_package", "create_tool", "write_tool_script"} and meta_intent:
+                    selected.append(schema)
+                elif name in {"system_status", "list_processes", "terminate_process", "list_windows",
+                              "list_services", "service_control", "serial_ports", "env_vars",
+                              "registry_read"} and (system_control_intent or device_intent):
+                    selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
                     "list_dir", "search_files", "grep", "document_to_markdown", "inspect_file", "verify_file", "edit_file",
@@ -239,6 +255,10 @@ class Agent:
                     "download_file", "run_command", "run_python_file", "execute_command", "open_file", "open_application", "open_vscode",
                     "generate_image", "workspace_info", "system_info", "query_devices", "get_hardware_status",
                     "capture_local_network", "scan_wifi_80211", "scan_ble_beacon",
+                    "discover_tools", "inspect_environment", "search_tools", "install_package",
+                    "create_tool", "write_tool_script",
+                    "system_status", "list_processes", "terminate_process", "list_windows",
+                    "list_services", "service_control", "serial_ports", "env_vars", "registry_read",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)
