@@ -8,5 +8,9 @@
   "command_shell": "PowerShell",
   "full_local_access": true,
   "auto_run_commands": true,
+  "web_search_enabled": true,
+  "allow_firmware": false,
+  "allow_startup": false,
+  "allow_capture": false,
   "progress_samples": {}
 }

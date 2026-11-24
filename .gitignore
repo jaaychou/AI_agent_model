@@ -68,6 +68,11 @@ logs*.txt
 Thumbs.db
 Desktop.ini
 
+# Third-party cloned repos and generated binaries (restored by tools/恢复环境.bat)
+AI_Model/tools/manim/
+AI_Model/tools/manim_videos/
+AI_Model/tools/ffmpeg/
+
 # One-off debug dumps captured during setup (environment-specific, not handover material)
 AI_Model/comfy_object_info.json
 

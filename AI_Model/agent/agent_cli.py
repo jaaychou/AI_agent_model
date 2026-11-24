@@ -93,6 +93,10 @@ def make_agent(args, cfg: dict) -> Agent:
     from core.network_observe import register_network_observe_tools
     from core.dsp_tools import register_dsp_tools
     from core.autopilot import register_autopilot_tools
+    from core.data_tools import register_data_tools
+    from core.manim_tools import register_manim_tools
+    from core.privileged_tools import register_privileged_tools
+    from core.capture_tools import register_capture_tools
     register_meta_tools(registry, confirm=confirm)
     register_system_control_tools(registry, confirm=confirm)
     register_web_tools(registry, confirm=confirm)
@@ -104,6 +108,21 @@ def make_agent(args, cfg: dict) -> Agent:
     register_network_observe_tools(registry, confirm=confirm)
     register_dsp_tools(registry, confirm=confirm)
     register_autopilot_tools(registry, confirm=confirm)
+    # 数据/动画能力默认可用（低危）
+    register_data_tools(registry, confirm=confirm)
+    register_manim_tools(registry)
+    # 高危能力：CLI 无 GUI 开关，默认全部关闭，需环境变量显式授权
+    import os as _os
+    _priv = set()
+    if _os.getenv("AGENT_ENABLE_FIRMWARE") == "1":
+        _priv.add("firmware")
+    if _os.getenv("AGENT_ENABLE_STARTUP") == "1":
+        _priv.add("startup")
+    if _os.getenv("AGENT_ENABLE_WINR") == "1":
+        _priv.add("winr")
+    register_privileged_tools(registry, confirm=confirm, groups=_priv)
+    register_capture_tools(registry, confirm=confirm,
+                           enabled=(_os.getenv("AGENT_ENABLE_CAPTURE") == "1"))
     register_dynamic_tools(registry, confirm=confirm)
 
     # Skills

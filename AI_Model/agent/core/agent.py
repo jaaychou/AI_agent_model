@@ -164,6 +164,20 @@ class Agent:
         autopilot_intent = bool(re.search(
             r"自治|自主运行|长期运行|持续监控|自动运行|无人值守|"
             r"l5|autopilot|围栏|自己盯着|自动巡检|一直监测", text))
+        firmware_intent = bool(re.search(
+            r"bios|固件|firmware|uefi|启动项|bcdedit|安全启动|secure boot|主板版本|刷bios", text, re.I))
+        startup_intent = bool(re.search(
+            r"开机自启|开机启动|自启动|开机自动|随.*启动|登录时启动|autorun|启动项", text))
+        winr_intent = bool(re.search(
+            r"win\+r|运行命令|shell命令|regedit|msconfig|services\.msc|执行系统命令", text, re.I))
+        capture_intent = bool(re.search(
+            r"抓包|嗅探|monitor模式|监控模式|802\.11|无线帧|蓝牙.*(?:抓|嗅探|广播)|"
+            r"packet capture|wifi.*密码|无线密码|ble.*sniff", text, re.I))
+        data_intent = bool(re.search(
+            r"画(?:个|张|幅)?图|绘图|图表|折线|柱状|散点|直方图|饼图|可视化|"
+            r"数据分析|统计|分组|csv|excel|xlsx|pandas|虚拟环境|venv|隔离环境", text, re.I))
+        manim_intent = bool(re.search(
+            r"manim|动画|3b1b|线性代数.*(?:动画|视频)|数学动画|eola|essence of linear|渲染.*视频", text, re.I))
         sandbox_intent = bool(re.search(
             r"沙盒|隔离.*(?:运行|执行|测试|编译)|安全.*(?:运行|测试|编译)|"
             r"编译.*测试|跑.*(?:代码|脚本|实验)|测试.*代码|try.*code", text))
@@ -302,6 +316,19 @@ class Agent:
                     selected.append(schema)
                 elif name in {"start_autopilot", "stop_autopilot", "autopilot_report"} and autopilot_intent:
                     selected.append(schema)
+                elif name in {"firmware_info", "uefi_boot_entries", "bios_update_guidance"} and firmware_intent:
+                    selected.append(schema)
+                elif name == "run_windows_command" and winr_intent:
+                    selected.append(schema)
+                elif name == "startup_manager" and startup_intent:
+                    selected.append(schema)
+                elif name in {"capture_status", "capture_packets", "scan_wifi_80211",
+                              "scan_ble_beacon", "wifi_profile_passwords"} and capture_intent:
+                    selected.append(schema)
+                elif name in {"venv_manager", "plot_chart", "data_analyze"} and data_intent:
+                    selected.append(schema)
+                elif name in {"manim_status", "manim_examples", "manim_render"} and manim_intent:
+                    selected.append(schema)
                 elif name not in {
                     "web_search", "current_datetime", "network_location", "read_file", "write_file", "delete_file",
                     "list_dir", "search_files", "grep", "document_to_markdown", "inspect_file", "verify_file", "edit_file",
@@ -321,6 +348,10 @@ class Agent:
                     "net_connections", "dns_cache",
                     "dsp_spectrum", "dsp_filter", "dsp_resample", "dsp_stats", "dsp_smooth",
                     "start_autopilot", "stop_autopilot", "autopilot_report",
+                    "firmware_info", "uefi_boot_entries", "bios_update_guidance", "run_windows_command",
+                    "startup_manager", "capture_status", "capture_packets", "scan_wifi_80211",
+                    "scan_ble_beacon", "wifi_profile_passwords", "venv_manager", "plot_chart",
+                    "data_analyze", "manim_status", "manim_examples", "manim_render",
                 }:
                     # Preserve future MCP-adjacent built-ins until they receive an explicit intent rule.
                     selected.append(schema)

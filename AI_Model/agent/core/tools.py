@@ -469,7 +469,8 @@ def _visible_window_title(pid: int | None = None, app_name: str = "") -> str | N
 
 def register_builtin_tools(registry: ToolRegistry, allow_dangerous: bool = False,
                            default_shell: str = "CMD", image_callback=None,
-                           default_model: str | None = None, progress_callback=None):
+                           default_model: str | None = None, progress_callback=None,
+                           web_search_enabled: bool = True):
     """注册内置工具：文件、目录、命令行。"""
 
     binary_suffixes = {
@@ -1287,11 +1288,12 @@ def register_builtin_tools(registry: ToolRegistry, allow_dangerous: bool = False
         except Exception as exc:
             return ToolResult(False, f"联网搜索失败：{type(exc).__name__}: {exc}。请说明无法核实，不要把训练记忆当作最新搜索结果。")
 
-    registry.register(
-        "web_search", "使用 Bing 实时搜索公开网页并返回标题、摘要、URL 和可用发布日期；适用于最新新闻、天气、进展等。摘要未必等于全文，回答必须链接实际返回的 URL",
-        {"type": "object", "properties": {
-            "query": {"type": "string", "description": "精确、简短的搜索关键词"},
-        }, "required": ["query"]}, web_search)
+    if web_search_enabled:
+        registry.register(
+            "web_search", "使用 Bing 实时搜索公开网页并返回标题、摘要、URL 和可用发布日期；适用于最新新闻、天气、进展等。摘要未必等于全文，回答必须链接实际返回的 URL",
+            {"type": "object", "properties": {
+                "query": {"type": "string", "description": "精确、简短的搜索关键词"},
+            }, "required": ["query"]}, web_search)
 
     def network_location(args):
         import urllib.request

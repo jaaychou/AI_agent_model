@@ -411,6 +411,11 @@ class AgentApp:
         self.command_shell = tk.StringVar(value=self.cfg.get("command_shell", "PowerShell"))
         self.full_local_access = tk.BooleanVar(value=bool(self.cfg.get("full_local_access", False)))
         self.auto_run_commands = tk.BooleanVar(value=bool(self.cfg.get("auto_run_commands", True)))
+        # 高级权限开关（默认全部关闭，用户显式开启才赋予）
+        self.web_search_enabled = tk.BooleanVar(value=bool(self.cfg.get("web_search_enabled", True)))
+        self.allow_firmware = tk.BooleanVar(value=bool(self.cfg.get("allow_firmware", False)))
+        self.allow_startup = tk.BooleanVar(value=bool(self.cfg.get("allow_startup", False)))
+        self.allow_capture = tk.BooleanVar(value=bool(self.cfg.get("allow_capture", False)))
         self.is_admin = self._is_admin_process()
         self.running = False
         self.msg_queue: queue.Queue = queue.Queue()
@@ -430,6 +435,7 @@ class AgentApp:
         self.stream_flush_pending = False
         self.generated_image_refs = []
         self.image_paths = []
+        self.video_paths = []
         self.thinking_chars = 0
         self.task_started_at: float | None = None
         self.task_last_status_at = 0.0
@@ -850,6 +856,43 @@ class AgentApp:
                        bg=C_BG, activebackground=C_BG,
                        font=(FONT_UI, 8), anchor="w").pack(fill=tk.X, padx=8, pady=(5, 0))
         tk.Label(settings, text="开启后 Agent 可根据命令结果继续排错和验证，不再逐条弹确认。命令仍按当前账户权限执行，不是沙盒；管理员模式下会获得管理员权限。",
+                 bg=C_BG, fg="#9a5b19", font=(FONT_UI, 7), wraplength=290,
+                 justify="left", anchor="w").pack(fill=tk.X, padx=10, pady=(0, 5))
+
+        # ---- 高级权限（逐项独立授权，默认关闭）----
+        tk.Label(settings, text="高级权限（默认关闭，逐项授权）",
+                 bg=C_BG, fg=C_TEXT, font=(FONT_UI, 9, "bold"), anchor="w").pack(
+                     fill=tk.X, padx=10, pady=(12, 4))
+        tk.Checkbutton(settings, text="允许联网搜索（web_search）",
+                       variable=self.web_search_enabled,
+                       command=self._toggle_web_search,
+                       bg=C_BG, activebackground=C_BG,
+                       font=(FONT_UI, 8), anchor="w").pack(fill=tk.X, padx=8, pady=(2, 0))
+        tk.Label(settings, text="关闭后 Agent 无法联网核实最新信息，且不得用记忆冒充搜索结果。",
+                 bg=C_BG, fg=C_TEXT_DIM, font=(FONT_UI, 7), wraplength=290,
+                 justify="left", anchor="w").pack(fill=tk.X, padx=10, pady=(0, 4))
+        tk.Checkbutton(settings, text="允许固件/BIOS 信息与启动项管理",
+                       variable=self.allow_firmware,
+                       command=self._toggle_firmware,
+                       bg=C_BG, activebackground=C_BG,
+                       font=(FONT_UI, 8), anchor="w").pack(fill=tk.X, padx=8, pady=(2, 0))
+        tk.Label(settings, text="只读取 BIOS/UEFI 信息、查看启动项、给刷 BIOS 指引；不会无人值守刷固件。",
+                 bg=C_BG, fg="#9a5b19", font=(FONT_UI, 7), wraplength=290,
+                 justify="left", anchor="w").pack(fill=tk.X, padx=10, pady=(0, 4))
+        tk.Checkbutton(settings, text="允许管理开机自启动程序",
+                       variable=self.allow_startup,
+                       command=self._toggle_startup,
+                       bg=C_BG, activebackground=C_BG,
+                       font=(FONT_UI, 8), anchor="w").pack(fill=tk.X, padx=8, pady=(2, 0))
+        tk.Label(settings, text="可 list/add/remove 启动项；增删都需确认，HKLM 范围需管理员。",
+                 bg=C_BG, fg="#9a5b19", font=(FONT_UI, 7), wraplength=290,
+                 justify="left", anchor="w").pack(fill=tk.X, padx=10, pady=(0, 4))
+        tk.Checkbutton(settings, text="允许网络抓包与无线嗅探",
+                       variable=self.allow_capture,
+                       command=self._toggle_capture,
+                       bg=C_BG, activebackground=C_BG,
+                       font=(FONT_UI, 8), anchor="w").pack(fill=tk.X, padx=8, pady=(2, 0))
+        tk.Label(settings, text="需 Npcap + 管理员。WiFi monitor/蓝牙空口嗅探受硬件限制，工具会如实报告。",
                  bg=C_BG, fg="#9a5b19", font=(FONT_UI, 7), wraplength=290,
                  justify="left", anchor="w").pack(fill=tk.X, padx=10, pady=(0, 5))
 
@@ -1413,11 +1456,19 @@ class AgentApp:
 
         registry = ToolRegistry(workspace=ws, confirm_callback=confirm,
                                  allow_outside_workspace=self.full_local_access.get())
+
+        def preview(path):
+            # 图片走内联预览；视频(mp4)走可点击链接 + 系统播放器
+            suffix = Path(path).suffix.lower()
+            kind = "generated_video" if suffix in {".mp4", ".mov", ".avi", ".webm"} else "generated_image"
+            self.msg_queue.put((kind, path))
+
         register_builtin_tools(registry, allow_dangerous=self.auto_run_commands.get(),
                                default_shell=self.command_shell.get(),
                                image_callback=lambda path: self.msg_queue.put(("generated_image", path)),
                                progress_callback=lambda data: self.msg_queue.put(("task_progress", data)),
-                               default_model=model or self.model_var.get())
+                               default_model=model or self.model_var.get(),
+                               web_search_enabled=self.web_search_enabled.get())
         # 元工具：自我发现 / 联网搜工具 / 隔离安装 / 自造工具 / 底层系统控制
         from core.meta_tools import register_meta_tools, register_dynamic_tools
         from core.system_control import register_system_control_tools
@@ -1430,6 +1481,10 @@ class AgentApp:
         from core.network_observe import register_network_observe_tools
         from core.dsp_tools import register_dsp_tools
         from core.autopilot import register_autopilot_tools
+        from core.privileged_tools import register_privileged_tools
+        from core.capture_tools import register_capture_tools
+        from core.data_tools import register_data_tools
+        from core.manim_tools import register_manim_tools
         register_meta_tools(registry, confirm=confirm)
         register_system_control_tools(registry, confirm=confirm)
         register_web_tools(registry, confirm=confirm)
@@ -1441,6 +1496,20 @@ class AgentApp:
         register_network_observe_tools(registry, confirm=confirm)
         register_dsp_tools(registry, confirm=confirm)
         register_autopilot_tools(registry, confirm=confirm)
+        # 数据与动画能力（默认可用，无需高危授权）
+        register_data_tools(registry, confirm=confirm, preview_cb=preview)
+        register_manim_tools(registry, preview_cb=preview)
+        # 高危权限工具：严格按 GUI 开关门控，默认关闭
+        # Win+R 命令归入“自主运行命令”授权（auto_run_commands），固件/自启动各自独立授权
+        priv_groups = set()
+        if self.allow_firmware.get():
+            priv_groups.add("firmware")
+        if self.allow_startup.get():
+            priv_groups.add("startup")
+        if self.auto_run_commands.get():
+            priv_groups.add("winr")
+        register_privileged_tools(registry, confirm=confirm, groups=priv_groups)
+        register_capture_tools(registry, confirm=confirm, enabled=self.allow_capture.get())
         register_dynamic_tools(registry, confirm=confirm)
 
         skills = load_skills(SKILLS_DIR)
@@ -1459,7 +1528,14 @@ class AgentApp:
             ("你可以读写、搜索工作空间文件；" + ("run_command 已获用户授权可自主执行，不要再请求逐条确认；根据真实命令输出排查错误、调整方案并验证结果。" if self.auto_run_commands.get() else "执行命令前会请求用户确认。") + "删除文件、工作空间外写入、生成图片和调用外部 MCP 工具仍会确认。命令按当前 Windows 用户权限运行，但不是操作系统沙盒。\n") if self.tools_enabled else "当前模型不支持工具调用，只能进行对话和视觉分析；不要声称已创建文件、运行命令或生成图片。请建议用户切换到同时支持 tools 的模型（例如已安装的 qwen3.5:4b）。\n",
             "如果用户消息已附上代码或文本文件内容，应直接使用消息中的附件内容；需要调用文件工具时，使用附件标题中给出的完整相对路径。\n",
             "本 GUI 已将 ComfyUI 封装为 generate_image 工具。用户问如何使用时，说明直接在聊天输入‘生成一张……’即可，不需要手工搭节点工作流；明确询问 ComfyUI 节点界面时才介绍工作流。用户要求文生图时调用 generate_image；只有工具返回成功才报告已生成。\n",
-            "联网搜索已通过 web_search 工具取得 Bing 实时结果；只把结果中的真实 URL 作为来源，说明搜索时间和页面发布日期。搜索摘要不是全文，不得把未经核实的猜想/新闻说成事实；没有结果就明确说无法核实。\n",
+            ("联网搜索已通过 web_search 工具取得 Bing 实时结果；只把结果中的真实 URL 作为来源，说明搜索时间和页面发布日期。"
+             "搜索摘要不是全文，不得把未经核实的猜想/新闻说成事实；没有结果就明确说无法核实。\n"
+             if self.web_search_enabled.get() else
+             "联网搜索当前已被用户关闭：你没有 web_search 工具，无法核实最新/时效信息。涉及新闻、价格、最新进展时"
+             "必须明确说明无法联网核实，绝不能用训练记忆冒充实时搜索结果；静态知识可正常回答。\n"),
+            ("用户要画图表/做数据分析/看统计时，主动调用 plot_chart 出图（可弹窗预览）或 data_analyze 分析 CSV/Excel/JSON；"
+             "要隔离的 Python 环境时用 venv_manager 创建。用户说要做数学动画、线性代数动画、参考 3b1b 风格时，"
+             "调用 manim_examples 看线代源码、用 manim_render 写 ManimGL 脚本渲染并预览。\n"),
             "用户问‘我在哪’、本机公网 IP 或出口位置时，必须直接调用 network_location；不要把工作空间路径当作地理位置，也不要用隐私理由拒绝。明确说明这是公网 IP 粗略归属而非 GPS，VPN/代理可能显示出口节点。\n",
             "读取或转换 PDF/DOCX 时使用 document_to_markdown 或知识库导入；扫描 PDF 需要 OCR。\n",
             "用户要求打开本机软件时调用 open_application；该工具按开始菜单快捷方式、Windows App Paths 注册表和 PATH 查找，不要编造应用名称、启动结果或窗口状态。只有检测到真实可见窗口才报告打开成功；否则报告 Windows 已接收启动请求但窗口未确认。查询设备时调用 query_devices。open_file 用 Windows 文件关联打开指定路径，代码和脚本默认交给编辑器而不执行。\n",
@@ -1683,6 +1759,10 @@ class AgentApp:
         self.cfg["command_shell"] = self.command_shell.get()
         self.cfg["full_local_access"] = self.full_local_access.get()
         self.cfg["auto_run_commands"] = self.auto_run_commands.get()
+        self.cfg["web_search_enabled"] = self.web_search_enabled.get()
+        self.cfg["allow_firmware"] = self.allow_firmware.get()
+        self.cfg["allow_startup"] = self.allow_startup.get()
+        self.cfg["allow_capture"] = self.allow_capture.get()
         try:
             CONFIG_PATH.write_text(json.dumps(self.cfg, ensure_ascii=False, indent=2),
                                    encoding="utf-8")
@@ -2045,6 +2125,8 @@ class AgentApp:
                     self._append_chat("system", f"[错误] {text}")
                 elif kind == "generated_image":
                     self._append_generated_image(text)
+                elif kind == "generated_video":
+                    self._append_generated_video(text)
                 elif kind == "done":
                     self._finish_progress()
                     self.running = False
@@ -2210,6 +2292,35 @@ class AgentApp:
         if in_code:
             finish_code_block()
 
+    def _append_generated_video(self, path):
+        """在对话里显示视频的可点击预览入口，双击用系统播放器打开。"""
+        self.chat.configure(state="normal")
+        self.chat.insert(tk.END, "\n动画渲染完成\n", "agent_name")
+        start = self.chat.index("end-1c")
+        self.chat.insert(tk.END, f"▶ 点击播放动画：{path}\n\n", "agent")
+        end = self.chat.index("end-1c")
+        tag = f"generated_video_{len(self.video_paths)}"
+        self.video_paths.append(str(path))
+        self.chat.tag_add(tag, start, end)
+        self.chat.tag_bind(tag, "<Button-1>",
+                           lambda _e, p=str(path): self._open_video(p))
+        self.chat.tag_bind(tag, "<Enter>", lambda _e: self.chat.configure(cursor="hand2"))
+        self.chat.tag_bind(tag, "<Leave>", lambda _e: self.chat.configure(cursor=""))
+        self.chat.see(tk.END)
+        self.chat.configure(state="disabled")
+
+    def _open_video(self, path):
+        try:
+            if os.name == "nt":
+                os.startfile(path)  # type: ignore[attr-defined]
+            elif sys.platform == "darwin":
+                subprocess.run(["open", path], check=False)
+            else:
+                subprocess.run(["xdg-open", path], check=False)
+            self.status_var.set(f"已用系统播放器打开：{Path(path).name}")
+        except Exception as exc:
+            messagebox.showerror("打开视频失败", str(exc))
+
     def _append_generated_image(self, path):
         try:
             if Image is None or ImageTk is None:
@@ -2348,6 +2459,43 @@ class AgentApp:
             self.auto_run_commands.set(False)
         self._save_cfg()
         self._reset_agent()
+
+    def _rebuild_after_toggle(self, var, name):
+        """高级权限开关切换后的统一处理：运行时禁止、保存、重建 Agent。"""
+        if self.running:
+            var.set(not var.get())
+            messagebox.showinfo("任务正在运行", f"请等当前任务完成后再更改“{name}”。")
+            return
+        self._save_cfg()
+        self._reset_agent()
+
+    def _toggle_web_search(self):
+        self._rebuild_after_toggle(self.web_search_enabled, "联网搜索")
+
+    def _toggle_firmware(self):
+        if self.allow_firmware.get() and not messagebox.askyesno(
+                "启用固件/启动项能力？",
+                "将允许 Agent 读取 BIOS/UEFI 固件信息、查看启动项、给出刷 BIOS 指引。\n"
+                "Agent 不会无人值守刷写固件（那会变砖且需厂商工具）。是否启用？"):
+            self.allow_firmware.set(False)
+        self._rebuild_after_toggle(self.allow_firmware, "固件管理")
+
+    def _toggle_startup(self):
+        if self.allow_startup.get() and not messagebox.askyesno(
+                "启用开机自启动管理？",
+                "将允许 Agent 添加/删除开机自启动程序，每次操作都会逐次确认。\n"
+                "恶意软件也常用这种方式持久化，请留意 Agent 的每次增删请求。是否启用？"):
+            self.allow_startup.set(False)
+        self._rebuild_after_toggle(self.allow_startup, "开机自启动")
+
+    def _toggle_capture(self):
+        if self.allow_capture.get() and not messagebox.askyesno(
+                "启用网络抓包与无线嗅探？",
+                "将允许 Agent 抓包、读已保存 WiFi 密码、枚举蓝牙设备，每次都需确认。\n"
+                "需要 Npcap（本机已装）+ 管理员权限。抓包内容仅存本机不外传。\n"
+                "仅在你自己的设备上使用，勿用于未授权网络。是否启用？"):
+            self.allow_capture.set(False)
+        self._rebuild_after_toggle(self.allow_capture, "抓包嗅探")
 
     @staticmethod
     def _is_admin_process():
